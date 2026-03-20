@@ -6,9 +6,10 @@ export const getUser = () => { try { return JSON.parse(localStorage.getItem('gg_
 export const isAdmin = () => getUser()?.role === 'admin';
 export const isLoggedIn = () => !!getToken();
 
+
 const saveSession = (data) => {
 
-  
+
   localStorage.setItem('gg_token', data.token);
   localStorage.setItem('gg_user', JSON.stringify({ _id: data._id, name: data.name, email: data.email, role: data.role }));
 };
