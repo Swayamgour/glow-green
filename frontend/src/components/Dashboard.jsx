@@ -4,6 +4,7 @@ import {
   fetchExecutives,
   createExecutive,
   deleteExecutive,
+  updateExecutive
 } from '../services/executive.service';
 import {
   fetchLeads,
@@ -21,6 +22,7 @@ import Quotations from './Quotations';
 import TDS from './TDS';
 import Reports from './Reports';
 import { clearSession, getUser } from '../services/auth.service';
+import Switch from "@mui/material/Switch";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const getPhotoUrl = (path) => (path ? `${SERVER_URL}/${path}` : null);
@@ -44,7 +46,7 @@ function Dashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('gg_theme') === 'dark');
-  
+
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
@@ -52,7 +54,7 @@ function Dashboard({ user, onLogout }) {
   }, [darkMode]);
 
   const [toast, setToast] = useState(null);
-  
+
   const [loginToast, setLoginToast] = useState('');
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
   const avatarMenuRef = useRef(null);
@@ -124,12 +126,12 @@ function Dashboard({ user, onLogout }) {
   const [remarksBold, setRemarksBold] = useState(false);
   const [remarksItalic, setRemarksItalic] = useState(false);
   const [remarksUnderline, setRemarksUnderline] = useState(false);
-  
+
 
   // Dashboard stats (static placeholders — extend as needed)
   const stats = [
-    { label: 'Total Customers', value: leads.length.toString(), change: '+12%', trend: 'up' },
-    { label: 'Active Deals', value: leads.filter(l => l.leadStatus === 'in-progress').length.toString(), change: '+8%', trend: 'up' },
+    { label: 'Total Leads', value: leads.length.toString(), trend: 'up' },
+    { label: 'Active Leads', value: leads.filter(l => l.leadStatus === 'in-progress').length.toString(), trend: 'up' },
     { label: 'Executives', value: executives.length.toString(), change: '', trend: 'up' },
     { label: 'Closed Won', value: leads.filter(l => l.leadStatus === 'won').length.toString(), change: '', trend: 'up' },
   ];
@@ -374,64 +376,89 @@ function Dashboard({ user, onLogout }) {
     }
   };
 
-const leadSubItems = [
-  {
-    id: 'leads', label: 'All Leads',
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>,
-  },
-  {
-    id: 'lead-sources', label: 'Lead Sources',
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>,
-  },
-  {
-    id: 'lead-pipeline', label: 'Lead Pipeline',
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M11 18H8a2 2 0 0 1-2-2V9"/></svg>,
-  },
-  {
-    id: 'follow-up', label: 'Follow Up',
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-  },
-  {
-    id: 'lead-timeline', label: 'Lead Timeline',
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
-  },
-];
+  const leadSubItems = [
+    {
+      id: 'leads', label: 'All Leads',
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>,
+    },
+    {
+      id: 'lead-sources', label: 'Lead Sources',
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /></svg>,
+    },
+    {
+      id: 'lead-pipeline', label: 'Lead Pipeline',
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="18" r="3" /><circle cx="6" cy="6" r="3" /><path d="M13 6h3a2 2 0 0 1 2 2v7" /><path d="M11 18H8a2 2 0 0 1-2-2V9" /></svg>,
+    },
+    {
+      id: 'follow-up', label: 'Follow Up',
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
+    },
+    {
+      id: 'lead-timeline', label: 'Lead Timeline',
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>,
+    },
+  ];
 
-const leadTabIds = leadSubItems.map(item => item.id);
+  const leadTabIds = leadSubItems.map(item => item.id);
 
-const navItems = [
-  {
-    id: 'overview',
-    label: 'Dashboard',
-    badge: null,
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-      <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-    </svg>,
-  },
-  ...(isAdmin ? [{
-    id: 'sales-executives', label: 'Sales Executives',
-    badge: executives.length || null,
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-  }] : []),
-  {
-    id: 'leads-parent', label: 'Leads',
-    badge: leads.filter(l => l.leadStatus === 'open').length || null,
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>,
-  },
-  { id: 'customers', label: 'Customers', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
-  { id: 'products', label: 'Products', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg> },
-  { id: 'quotations', label: 'Quotations', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> },
-  { id: 'tds', label: 'TDS Documents', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> },
-  ...(isAdmin ? [{
-    id: 'reports', label: 'Reports',
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
-  }] : []),
-  {
-    id: 'mom', label: 'Minutes of Meeting', badge: null,
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
-  },
-];
+  const handleToggle = async (exec) => {
+    const updatedStatus = exec.status === "active" ? "inactive" : "active";
+
+    try {
+      await updateExecutive(exec._id, { status: updatedStatus });
+
+      setExecutives((prev) =>
+        prev.map((item) =>
+          item._id === exec._id
+            ? { ...item, status: updatedStatus }
+            : item
+        )
+      );
+
+      showToast("Status updated");
+    } catch (err) {
+      console.log(err);
+
+      showToast(
+        err.response?.data?.message || err.message || "Failed to update status",
+        "error"
+      );
+    }
+  };
+
+  const navItems = [
+    {
+      id: 'overview',
+      label: 'Dashboard',
+      badge: null,
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+        <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+      </svg>,
+    },
+    ...(isAdmin ? [{
+      id: 'sales-executives', label: 'Sales Executives',
+      badge: executives.length || null,
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
+    }] : []),
+    {
+      id: 'leads-parent', label: 'Leads',
+      badge: leads.filter(l => l.leadStatus === 'open').length || null,
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>,
+    },
+    { id: 'customers', label: 'Customers', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg> },
+    { id: 'products', label: 'Products', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /></svg> },
+    { id: 'quotations', label: 'Quotations', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg> },
+    { id: 'tds', label: 'TDS Documents', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg> },
+    ...(isAdmin ? [{
+      id: 'reports', label: 'Reports',
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>,
+    }] : []),
+    {
+      id: 'mom', label: 'Minutes of Meeting', badge: null,
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>,
+    },
+  ];
 
   // ─── Page title ───────────────────────────────────────────────────────────────
   const pageTitle = [...navItems, ...leadSubItems].find(n => n.id === activeTab)?.label || 'Dashboard';
@@ -446,7 +473,7 @@ const navItems = [
           <div className="crm-page-header">
             <h2>Sales Executives</h2>
             <button className="btn-primary" onClick={() => setShowAddExecutive(v => !v)}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
               Add Executive
             </button>
           </div>
@@ -462,7 +489,7 @@ const navItems = [
                       ? <img src={photoPreview} alt="Preview" className="avatar-preview" />
                       : <div className="avatar-placeholder">EX</div>}
                     <label className="camera-btn" htmlFor="photo-upload">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
                     </label>
                     <input id="photo-upload" type="file" accept="image/*" hidden onChange={handlePhotoChange} />
                   </div>
@@ -470,7 +497,7 @@ const navItems = [
                     <h4>Profile Photo</h4>
                     <p>Upload a profile picture (JPG, PNG, GIF)</p>
                     <label htmlFor="photo-upload" className="upload-link">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
                       Upload Photo
                     </label>
                   </div>
@@ -480,7 +507,7 @@ const navItems = [
                 <div className="form-group full-width">
                   <label>Full Name <span className="required">*</span></label>
                   <div className="input-wrapper">
-                    <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                     <input type="text" placeholder="Enter executive's full name" value={executiveForm.name}
                       onChange={e => setExecutiveForm({ ...executiveForm, name: e.target.value })} />
                   </div>
@@ -490,7 +517,7 @@ const navItems = [
                   <div className="form-group">
                     <label>Phone Number <span className="required">*</span></label>
                     <div className="input-wrapper">
-                      <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5 19.79 19.79 0 0 1 1.61 4.9 2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 17.5z"/></svg>
+                      <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5 19.79 19.79 0 0 1 1.61 4.9 2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 17.5z" /></svg>
                       <input
                         type="tel"
                         placeholder="10-digit mobile number"
@@ -506,7 +533,7 @@ const navItems = [
                   <div className="form-group">
                     <label>Email Address <span className="required">*</span></label>
                     <div className="input-wrapper">
-                      <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                      <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
                       <input type="email" placeholder="executive@company.com" value={executiveForm.email}
                         onChange={e => setExecutiveForm({ ...executiveForm, email: e.target.value })} />
                     </div>
@@ -517,28 +544,28 @@ const navItems = [
                   <div className="form-group">
                     <label>Password <span className="required">*</span></label>
                     <div className="input-wrapper">
-                      <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                       <input type={showPassword ? 'text' : 'password'} placeholder="Create password"
                         value={executiveForm.password}
                         onChange={e => setExecutiveForm({ ...executiveForm, password: e.target.value })} />
                       <button className="eye-btn" type="button" onClick={() => setShowPassword(v => !v)}>
                         {showPassword
-                          ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                          : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>}
+                          ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+                          : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>}
                       </button>
                     </div>
                   </div>
                   <div className="form-group">
                     <label>Confirm Password <span className="required">*</span></label>
                     <div className="input-wrapper">
-                      <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                       <input type={showConfirmPassword ? 'text' : 'password'} placeholder="Confirm password"
                         value={executiveForm.confirmPassword}
                         onChange={e => setExecutiveForm({ ...executiveForm, confirmPassword: e.target.value })} />
                       <button className="eye-btn" type="button" onClick={() => setShowConfirmPassword(v => !v)}>
                         {showConfirmPassword
-                          ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                          : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>}
+                          ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+                          : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>}
                       </button>
                     </div>
                   </div>
@@ -546,12 +573,12 @@ const navItems = [
 
                 <div className="form-actions">
                   <button className="btn-reset" onClick={handleExecutiveReset}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-4.95" /></svg>
                     Reset Form
                   </button>
                   <button className="btn-primary" onClick={handleSaveExecutive} disabled={execSaving}>
                     {execSaving ? <span className="spinner" /> : (
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
                     )}
                     {execSaving ? 'Saving...' : 'Save Executive'}
                   </button>
@@ -587,12 +614,35 @@ const navItems = [
                         <td>{exec.name}</td>
                         <td>{exec.phone}</td>
                         <td>{exec.email}</td>
-                        <td><span className={`status-badge ${exec.status}`}>{exec.status === 'active' ? 'Active' : 'Inactive'}</span></td>
+                        {/* <td><span className={`status-badge ${exec.status}`}>{exec.status === 'active' ? 'Active' : 'Inactive'}</span></td> */}
+
+
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+
+                            {/* MUI Switch */}
+                            <Switch
+                              checked={exec.status === "active"}
+                              onChange={() => handleToggle(exec)}
+                              inputProps={{ "aria-label": "controlled" }}
+                              color="success" // green color
+                            />
+
+                            {/* Status Text */}
+                            <span
+                              className={`status-badge ${exec.status === "active" ? "active" : "inactive"
+                                }`}
+                            >
+                              {exec.status === "active" ? "Active" : "Inactive"}
+                            </span>
+
+                          </div>
+                        </td>
                         <td>
                           <div className="actions-cell">
                             <button
                               className="action-btn"
-                              style={{background:'#eff6ff', color:'#3b82f6'}}
+                              style={{ background: '#eff6ff', color: '#3b82f6' }}
                               title="Change Password"
                               onClick={() => {
                                 const newPassword = window.prompt(`Set new password for ${exec.name} (min 6 characters):`);
@@ -603,11 +653,11 @@ const navItems = [
                                 }
                               }}
                             >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                             </button>
                             <button
                               className="action-btn"
-                              style={{background:'#f0fdf4', color:'#16a34a'}}
+                              style={{ background: '#f0fdf4', color: '#16a34a' }}
                               title="View Password"
                               onClick={async () => {
                                 try {
@@ -631,10 +681,10 @@ const navItems = [
                                 }
                               }}
                             >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
                             </button>
                             <button className="action-btn delete" onClick={() => handleDeleteExecutive(exec._id)}>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
                             </button>
                           </div>
                         </td>
@@ -672,7 +722,7 @@ const navItems = [
                   }, {})
                 ).map(([src, data]) => (
                   <tr key={src}>
-                    <td style={{fontWeight:600}}>{src}</td>
+                    <td style={{ fontWeight: 600 }}>{src}</td>
                     <td>{data.total}</td>
                     <td><span className="status-badge status-closed-won">{data.won}</span></td>
                     <td><span className="status-badge status-closed-lost">{data.lost}</span></td>
@@ -691,24 +741,24 @@ const navItems = [
     if (activeTab === 'lead-pipeline') return (
       <div className="crm-page">
         <div className="crm-page-header"><h2>Lead Pipeline</h2></div>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px,1fr))', gap:16}}>
-          {['open','in-progress','follow-up','won','lost'].map(status => {
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px,1fr))', gap: 16 }}>
+          {['open', 'in-progress', 'follow-up', 'won', 'lost'].map(status => {
             const group = leads.filter(l => l.leadStatus === status);
-            const colors = { open:'#dbeafe', 'in-progress':'#fef3c7', 'follow-up':'#ede9fe', won:'#dcfce7', lost:'#fee2e2' };
-            const textColors = { open:'#1d4ed8', 'in-progress':'#92400e', 'follow-up':'#6d28d9', won:'#166534', lost:'#991b1b' };
+            const colors = { open: '#dbeafe', 'in-progress': '#fef3c7', 'follow-up': '#ede9fe', won: '#dcfce7', lost: '#fee2e2' };
+            const textColors = { open: '#1d4ed8', 'in-progress': '#92400e', 'follow-up': '#6d28d9', won: '#166534', lost: '#991b1b' };
             return (
-              <div key={status} style={{background:'var(--bg-card)', border:'1px solid #e5e7eb', borderRadius:12, overflow:'hidden'}}>
-                <div style={{background:colors[status], padding:'12px 16px', borderBottom:'1px solid #e5e7eb'}}>
-                  <span style={{fontWeight:700, fontSize:13, color:textColors[status], textTransform:'capitalize'}}>{status.replace('-',' ')}</span>
-                  <span style={{float:'right', fontWeight:700, fontSize:18, color:textColors[status]}}>{group.length}</span>
+              <div key={status} style={{ background: 'var(--bg-card)', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ background: colors[status], padding: '12px 16px', borderBottom: '1px solid #e5e7eb' }}>
+                  <span style={{ fontWeight: 700, fontSize: 13, color: textColors[status], textTransform: 'capitalize' }}>{status.replace('-', ' ')}</span>
+                  <span style={{ float: 'right', fontWeight: 700, fontSize: 18, color: textColors[status] }}>{group.length}</span>
                 </div>
-                <div style={{padding:'8px 0', maxHeight:400, overflowY:'auto'}}>
-                  {group.length === 0 && <div className="empty-state" style={{padding:'20px 16px'}}>No leads</div>}
+                <div style={{ padding: '8px 0', maxHeight: 400, overflowY: 'auto' }}>
+                  {group.length === 0 && <div className="empty-state" style={{ padding: '20px 16px' }}>No leads</div>}
                   {group.map(l => (
-                    <div key={l._id} style={{padding:'10px 16px', borderBottom:'1px solid var(--bg-secondary)'}}>
-                      <div style={{fontWeight:600, fontSize:13, color:'var(--text-primary)'}}>{l.leadName || l.name}</div>
-                      <div style={{fontSize:12, color:'#9ca3af', marginTop:2}}>{l.company || l.leadSource || ''}</div>
-                      {l.expectedValue > 0 && <div style={{fontSize:12, fontWeight:600, color:'#059669', marginTop:3}}>₹{Number(l.expectedValue).toLocaleString('en-IN')}</div>}
+                    <div key={l._id} style={{ padding: '10px 16px', borderBottom: '1px solid var(--bg-secondary)' }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{l.leadName || l.name}</div>
+                      <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>{l.company || l.leadSource || ''}</div>
+                      {l.expectedValue > 0 && <div style={{ fontSize: 12, fontWeight: 600, color: '#059669', marginTop: 3 }}>₹{Number(l.expectedValue).toLocaleString('en-IN')}</div>}
                     </div>
                   ))}
                 </div>
@@ -722,7 +772,7 @@ const navItems = [
     if (activeTab === 'follow-up') return (
       <div className="crm-page">
         <div className="crm-page-header"><h2>Follow Up</h2></div>
-        <div className="card" style={{marginBottom:24}}>
+        <div className="card" style={{ marginBottom: 24 }}>
           <div className="card-header"><h3>Leads with Follow-Up Scheduled</h3></div>
           <div className="table-container">
             <table className="data-table">
@@ -730,21 +780,22 @@ const navItems = [
               <tbody>
                 {leads
                   .filter(l => l.followUpDate)
-                  .sort((a,b) => new Date(a.followUpDate) - new Date(b.followUpDate))
+                  .sort((a, b) => new Date(a.followUpDate) - new Date(b.followUpDate))
                   .map((l, i) => {
-                    const days = Math.ceil((new Date(l.followUpDate) - new Date()) / (1000*60*60*24));
+                    const days = Math.ceil((new Date(l.followUpDate) - new Date()) / (1000 * 60 * 60 * 24));
                     const isOverdue = days < 0;
                     const isToday = days === 0;
                     return (
                       <tr key={l._id}>
-                        <td className="row-num">{i+1}</td>
+                        <td className="row-num">{i + 1}</td>
                         <td className="lead-name-cell">{l.leadName || l.name}</td>
                         <td>{l.company || '—'}</td>
                         <td>{l.phone}</td>
                         <td><span className={`status-badge status-${l.leadStatus}`}>{l.leadStatus}</span></td>
-                        <td>{new Date(l.followUpDate).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</td>
+                        <td>{new Date(l.followUpDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                         <td>
-                          <span style={{fontWeight:600, fontSize:12, padding:'2px 10px', borderRadius:20,
+                          <span style={{
+                            fontWeight: 600, fontSize: 12, padding: '2px 10px', borderRadius: 20,
                             background: isOverdue ? '#fee2e2' : isToday ? '#fef3c7' : '#dcfce7',
                             color: isOverdue ? '#dc2626' : isToday ? '#92400e' : '#166534'
                           }}>
@@ -763,20 +814,20 @@ const navItems = [
         </div>
         <div className="card">
           <div className="card-header"><h3>Recent Activity Log</h3></div>
-          <div style={{padding:'8px 0', maxHeight:500, overflowY:'auto'}}>
+          <div style={{ padding: '8px 0', maxHeight: 500, overflowY: 'auto' }}>
             {leads.flatMap(l =>
               (l.activityLog || []).map(a => ({ ...a, leadName: l.leadName || l.name, leadId: l._id }))
-            ).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 50).map((event, i) => (
-              <div key={i} style={{display:'flex', gap:12, padding:'10px 20px', borderBottom:'1px solid var(--bg-secondary)', alignItems:'flex-start'}}>
-                <div style={{width:8, height:8, borderRadius:'50%', background:'#6366f1', marginTop:5, flexShrink:0}}/>
-                <div style={{flex:1}}>
-                  <div style={{display:'flex', justifyContent:'space-between', flexWrap:'wrap', gap:4}}>
-                    <span style={{fontSize:13, fontWeight:600, color:'var(--text-primary)'}}>{event.leadName}</span>
-                    <span style={{fontSize:11, color:'#9ca3af'}}>{new Date(event.timestamp).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
+            ).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 50).map((event, i) => (
+              <div key={i} style={{ display: 'flex', gap: 12, padding: '10px 20px', borderBottom: '1px solid var(--bg-secondary)', alignItems: 'flex-start' }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6366f1', marginTop: 5, flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{event.leadName}</span>
+                    <span style={{ fontSize: 11, color: '#9ca3af' }}>{new Date(event.timestamp).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
-                  <div style={{fontSize:12, color:'#6366f1', fontWeight:500, marginTop:2}}>{event.action}</div>
-                  {event.details && <div style={{fontSize:12, color:'var(--text-secondary)', marginTop:1}}>{event.details}</div>}
-                  {event.changedBy && <div style={{fontSize:11, color:'#9ca3af', marginTop:1}}>by {event.changedBy}</div>}
+                  <div style={{ fontSize: 12, color: '#6366f1', fontWeight: 500, marginTop: 2 }}>{event.action}</div>
+                  {event.details && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 1 }}>{event.details}</div>}
+                  {event.changedBy && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 1 }}>by {event.changedBy}</div>}
                 </div>
               </div>
             ))}
@@ -874,7 +925,7 @@ const navItems = [
                   onClick={() => setViewTimelineLead(null)}
                   style={{ width: 32, height: 32, border: 'none', background: '#f3f4f6', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#6b7280' }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                 </button>
               </div>
 
@@ -1019,15 +1070,15 @@ const navItems = [
       )}
       {loginToast && (
         <div style={{
-          position:'fixed', top:20, right:20, zIndex:9999,
-          background:'#dcfce7', color:'#166534',
-          border:'1px solid #bbf7d0', borderRadius:12,
-          padding:'14px 20px', fontSize:14, fontWeight:600,
-          display:'flex', alignItems:'center', gap:10,
-          boxShadow:'0 4px 20px rgba(0,0,0,0.12)',
-          animation:'slideIn 0.3s ease',
+          position: 'fixed', top: 20, right: 20, zIndex: 9999,
+          background: '#dcfce7', color: '#166534',
+          border: '1px solid #bbf7d0', borderRadius: 12,
+          padding: '14px 20px', fontSize: 14, fontWeight: 600,
+          display: 'flex', alignItems: 'center', gap: 10,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+          animation: 'slideIn 0.3s ease',
         }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
           {loginToast}
         </div>
       )}
@@ -1041,18 +1092,18 @@ const navItems = [
       />
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-logo">
-          <div className="logo-icon">C</div>
-          <span className="logo-text">CRM</span>
+          {/* <div className="logo-icon">C</div> */}
+          <span className="logo-text">Glow Green</span>
         </div>
         <div className="sidebar-user">
           <div className="user-avatar-sidebar">{(currentUser?.name || 'U')[0].toUpperCase()}</div>
           <div className="user-info">
             <span className="user-name">{currentUser?.name || user?.name || 'User'}</span>
-            <span className="user-role">{currentUser?.role === 'admin' ? 'Admin' : 'Executive'} · <span className="online-dot" /> Online</span>
+            {/* <span className="user-role">{currentUser?.role === 'admin' ? 'Admin' : 'Executive'} · <span className="online-dot" /> Online</span> */}
           </div>
-          <button className="bell-btn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          </button>
+          {/* <button className="bell-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+          </button> */}
         </div>
         <nav className="sidebar-nav">
           {navItems.map(item => (
@@ -1073,7 +1124,7 @@ const navItems = [
                     width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                     style={{ marginLeft: 'auto', transition: 'transform 0.2s ease', transform: leadsMenuOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}
                   >
-                    <polyline points="9 18 15 12 9 6"/>
+                    <polyline points="9 18 15 12 9 6" />
                   </svg>
                 ) : null}
                 {item.badge ? <span className="nav-badge">{item.badge}</span> : null}
@@ -1119,9 +1170,9 @@ const navItems = [
             window.location.href = '/';
           }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
             Logout
           </button>
@@ -1133,9 +1184,9 @@ const navItems = [
           <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button className="mobile-menu-btn" onClick={() => setSidebarOpen(v => !v)}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="3" y1="6" x2="21" y2="6"/>
-                <line x1="3" y1="12" x2="21" y2="12"/>
-                <line x1="3" y1="18" x2="21" y2="18"/>
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
             <h1>{activeTab === 'overview' ? 'Dashboard' : pageTitle}</h1>
@@ -1176,9 +1227,9 @@ const navItems = [
                     }}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                      <polyline points="16 17 21 12 16 7"/>
-                      <line x1="21" y1="12" x2="9" y2="12"/>
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
                     </svg>
                     Logout
                   </button>
@@ -1203,7 +1254,7 @@ const navItems = [
                 </div>
               </div>
               <button className="modal-close" onClick={() => { setViewLead(null); setShowAddRemark(false); setNewRemark(''); }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>
             <div className="modal-status-bar">
@@ -1229,21 +1280,21 @@ const navItems = [
               <div className="modal-detail-grid">
                 <div className="modal-detail-item">
                   <span className="modal-detail-label">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5 19.79 19.79 0 0 1 1.61 4.9 2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 17.5z"/></svg>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5 19.79 19.79 0 0 1 1.61 4.9 2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 17.5z" /></svg>
                     Phone
                   </span>
                   <span className="modal-detail-value">{viewLead.phone}</span>
                 </div>
                 <div className="modal-detail-item">
                   <span className="modal-detail-label">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></svg>
                     Source
                   </span>
                   <span className="modal-detail-value capitalize">{viewLead.source || '—'}</span>
                 </div>
                 <div className="modal-detail-item">
                   <span className="modal-detail-label">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                     Added On
                   </span>
                   <span className="modal-detail-value">
@@ -1252,7 +1303,7 @@ const navItems = [
                 </div>
                 <div className="modal-detail-item">
                   <span className="modal-detail-label">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                     Priority
                   </span>
                   <span className={`modal-detail-value priority-badge priority-${viewLead.priority || 'medium'}`}>
@@ -1262,7 +1313,7 @@ const navItems = [
               </div>
               <div className="modal-edit-section">
                 <span className="modal-detail-label">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
                   Assigned To
                 </span>
                 <div className="modal-edit-row">
@@ -1284,12 +1335,12 @@ const navItems = [
               </div>
               <div className="modal-edit-section">
                 <span className="modal-detail-label">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
                   Follow Up Date
                 </span>
                 <div className="modal-edit-row">
                   <div className="input-wrapper modal-date-input">
-                    <svg className="input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    <svg className="input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
                     <input
                       type="date"
                       defaultValue={viewLead.followUpDate ? new Date(viewLead.followUpDate).toISOString().split('T')[0] : ''}
@@ -1307,7 +1358,7 @@ const navItems = [
               {viewLead.remarks && (
                 <div className="modal-edit-section">
                   <span className="modal-detail-label">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                     Remarks / Notes
                   </span>
                   <p className="modal-remarks-text">{viewLead.remarks}</p>
@@ -1316,13 +1367,13 @@ const navItems = [
               <div className="modal-edit-section">
                 {!showAddRemark ? (
                   <button className="btn-add-remark" onClick={() => setShowAddRemark(true)}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                     Add Remark
                   </button>
                 ) : (
                   <div className="modal-remark-form">
                     <span className="modal-detail-label">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                       New Remark
                     </span>
                     <div className="rich-text-editor">
@@ -1332,10 +1383,10 @@ const navItems = [
                         <button type="button" className={`toolbar-btn ${remarkUnderline ? 'active' : ''}`} onClick={() => setRemarkUnderline(v => !v)}><u>U</u></button>
                         <div className="toolbar-divider" />
                         <button type="button" className="toolbar-btn" onClick={() => setNewRemark(v => v + '\n• ')}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>
                         </button>
                         <button type="button" className="toolbar-btn" onClick={() => setNewRemark('')}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-4.95" /></svg>
                         </button>
                       </div>
                       <textarea
@@ -1355,7 +1406,7 @@ const navItems = [
                       <button className="btn-reset" onClick={() => { setShowAddRemark(false); setNewRemark(''); }}>Cancel</button>
                       <button className="btn-primary" onClick={handleAddRemark} disabled={modalSaving}>
                         {modalSaving ? <span className="spinner" /> : (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
                         )}
                         {modalSaving ? 'Saving...' : 'Save Remark'}
                       </button>
@@ -1379,7 +1430,7 @@ const navItems = [
               <div className="modal-title-group">
                 <div className="modal-lead-avatar" style={{ background: '#f0fdf4', color: '#16a34a' }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
                 </div>
                 <div>
@@ -1389,7 +1440,7 @@ const navItems = [
               </div>
               <button className="modal-close" onClick={() => setPwModal(null)}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
             </div>
@@ -1422,7 +1473,7 @@ const navItems = [
                     This account was created before password storage was added. Set a new password below to save it.
                   </div>
                   <div className="input-wrapper">
-                    <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                     <input id="pw-reset-input" type="text" placeholder="Enter new password (min 6 characters)" style={{ fontFamily: 'monospace' }} />
                   </div>
                 </>

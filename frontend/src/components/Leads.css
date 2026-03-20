@@ -437,3 +437,16 @@
   .leads-modal-foot { flex-direction: column; gap: 8px; }
   .leads-modal-foot button { width: 100%; }
 }
+
+.tab-btn {
+  padding: 6px 14px;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tab-btn.active {
+  background: #6366f1;
+  color: white;
+}

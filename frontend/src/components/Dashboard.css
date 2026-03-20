@@ -985,3 +985,21 @@ input[type="date"] { color-scheme: light; }
   .form-actions .btn-primary,
   .form-actions .btn-reset { width: 100%; justify-content: center; }
 }
+
+.toggle-btn {
+  border: none;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #fff;
+  transition: 0.3s;
+}
+
+.toggle-btn.on {
+  background-color: #28a745; /* Green */
+}
+
+.toggle-btn.off {
+  background-color: #dc3545; /* Red */
+}

@@ -11,7 +11,7 @@ export const fetchExecutiveById = (id) => api.get(`/executives/${id}`);
 export const createExecutive = (formData) => api.postForm('/executives', formData);
 
 // Update executive (with optional new photo)
-export const updateExecutive = (id, formData) => api.putForm(`/executives/${id}`, formData);
+export const updateExecutive = (id, data) => api.put(`/executives/${id}`, data);
 
 // Delete executive
 export const deleteExecutive = (id) => api.delete(`/executives/${id}`);

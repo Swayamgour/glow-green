@@ -7,17 +7,17 @@ import { fetchExecutives } from '../services/executive.service';
 import './Quotations.css';
 
 const SERIES_OPTIONS = ['GG', 'QT', 'INV', 'EST'];
-const UNITS          = ['pcs', 'kg', 'g', 'litre', 'ml', 'box', 'bag', 'metre', 'set', 'other'];
-const TAX_TYPES      = [{ v: 'none', l: 'No Tax' }, { v: 'gst', l: 'GST' }, { v: 'igst', l: 'IGST' }];
-const TAX_RATES      = [0, 5, 12, 18, 28];
-const STATUSES       = ['draft', 'sent', 'accepted', 'rejected', 'expired'];
+const UNITS = ['pcs', 'kg', 'g', 'litre', 'ml', 'box', 'bag', 'metre', 'set', 'other'];
+const TAX_TYPES = [{ v: 'none', l: 'No Tax' }, { v: 'gst', l: 'GST' }, { v: 'igst', l: 'IGST' }];
+const TAX_RATES = [0, 5, 12, 18, 28];
+const STATUSES = ['draft', 'sent', 'accepted', 'rejected', 'expired'];
 
 const STATUS_STYLE = {
-  draft:    { bg: '#f3f4f6', text: '#374151' },
-  sent:     { bg: '#dbeafe', text: '#1d4ed8' },
+  draft: { bg: '#f3f4f6', text: '#374151' },
+  sent: { bg: '#dbeafe', text: '#1d4ed8' },
   accepted: { bg: '#dcfce7', text: '#166534' },
   rejected: { bg: '#fee2e2', text: '#991b1b' },
-  expired:  { bg: '#fef3c7', text: '#92400e' },
+  expired: { bg: '#fef3c7', text: '#92400e' },
 };
 
 const DEFAULT_TERMS = `1. This quotation is valid for 30 days from the date of issue.
@@ -38,17 +38,17 @@ const emptyForm = {
 };
 
 export default function Quotations() {
-  const [quotations, setQuotations]   = useState([]);
-  const [executives, setExecutives]   = useState([]);
-  const [loading, setLoading]         = useState(false);
-  const [search, setSearch]           = useState('');
+  const [quotations, setQuotations] = useState([]);
+  const [executives, setExecutives] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [view, setView]               = useState('list'); // list | form
-  const [editId, setEditId]           = useState(null);
-  const [form, setForm]               = useState(emptyForm);
-  const [saving, setSaving]           = useState(false);
-  const [toast, setToast]             = useState(null);
-  const [pdfLoading, setPdfLoading]   = useState({});
+  const [view, setView] = useState('list'); // list | form
+  const [editId, setEditId] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [pdfLoading, setPdfLoading] = useState({});
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -59,7 +59,7 @@ export default function Quotations() {
     setLoading(true);
     try {
       const params = {};
-      if (search)       params.search = search;
+      if (search) params.search = search;
       if (filterStatus) params.status = filterStatus;
       const [qRes, exRes] = await Promise.all([fetchQuotations(params), fetchExecutives()]);
       setQuotations(qRes.data || []);
@@ -95,7 +95,7 @@ export default function Quotations() {
     setForm(f => ({ ...f, items }));
   };
 
-  const addItem    = () => setForm(f => ({ ...f, items: [...f.items, { ...emptyItem }] }));
+  const addItem = () => setForm(f => ({ ...f, items: [...f.items, { ...emptyItem }] }));
   const removeItem = (idx) => setForm(f => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
 
   // ── Open form ─────────────────────────────────────────────
@@ -108,23 +108,23 @@ export default function Quotations() {
   const handleEdit = (q) => {
     setEditId(q._id);
     setForm({
-      series:          q.series || 'GG',
-      date:            q.date ? q.date.split('T')[0] : new Date().toISOString().split('T')[0],
-      validTill:       q.validTill ? q.validTill.split('T')[0] : '',
-      customerName:    q.customerName || '',
-      customerPhone:   q.customerPhone || '',
-      customerEmail:   q.customerEmail || '',
+      series: q.series || 'GG',
+      date: q.date ? q.date.split('T')[0] : new Date().toISOString().split('T')[0],
+      validTill: q.validTill ? q.validTill.split('T')[0] : '',
+      customerName: q.customerName || '',
+      customerPhone: q.customerPhone || '',
+      customerEmail: q.customerEmail || '',
       customerAddress: q.customerAddress || '',
-      customerGST:     q.customerGST || '',
-      items:           q.items?.length ? q.items : [{ ...emptyItem }],
-      discountType:    q.discountType || 'percent',
-      discountValue:   q.discountValue || 0,
-      taxType:         q.taxType || 'gst',
-      taxRate:         q.taxRate || 18,
-      terms:           q.terms || DEFAULT_TERMS,
-      notes:           q.notes || '',
-      status:          q.status || 'draft',
-      preparedBy:      q.preparedBy?._id || '',
+      customerGST: q.customerGST || '',
+      items: q.items?.length ? q.items : [{ ...emptyItem }],
+      discountType: q.discountType || 'percent',
+      discountValue: q.discountValue || 0,
+      taxType: q.taxType || 'gst',
+      taxRate: q.taxRate || 18,
+      terms: q.terms || DEFAULT_TERMS,
+      notes: q.notes || '',
+      status: q.status || 'draft',
+      preparedBy: q.preparedBy?._id || '',
     });
     setView('form');
   };
@@ -176,9 +176,9 @@ export default function Quotations() {
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
   const counts = {
-    all:      quotations.length,
-    draft:    quotations.filter(q => q.status === 'draft').length,
-    sent:     quotations.filter(q => q.status === 'sent').length,
+    all: quotations.length,
+    draft: quotations.filter(q => q.status === 'draft').length,
+    sent: quotations.filter(q => q.status === 'sent').length,
     accepted: quotations.filter(q => q.status === 'accepted').length,
   };
 
@@ -191,7 +191,7 @@ export default function Quotations() {
 
       <div className="qt-form-header">
         <button className="qt-back-btn" onClick={() => setView('list')}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
           Back
         </button>
         <h2>{editId ? 'Edit Quotation' : 'New Quotation'}</h2>
@@ -443,7 +443,7 @@ export default function Quotations() {
           <p>Create, manage and download professional quotations</p>
         </div>
         <button className="qt-btn-primary" onClick={handleNew}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
           New Quotation
         </button>
       </div>
@@ -451,9 +451,9 @@ export default function Quotations() {
       {/* Stats */}
       <div className="qt-stats">
         {[
-          { label: 'Total',    value: counts.all,      color: '#6366f1', icon: '📋' },
-          { label: 'Draft',    value: counts.draft,    color: '#6b7280', icon: '✏️' },
-          { label: 'Sent',     value: counts.sent,     color: '#2563eb', icon: '📤' },
+          { label: 'Total', value: counts.all, color: '#6366f1', icon: '📋' },
+          { label: 'Draft', value: counts.draft, color: '#6b7280', icon: '✏️' },
+          { label: 'Sent', value: counts.sent, color: '#2563eb', icon: '📤' },
           { label: 'Accepted', value: counts.accepted, color: '#16a34a', icon: '✅' },
           { label: 'Total Value', value: `₹${Number(quotations.reduce((s, q) => s + (q.grandTotal || 0), 0)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, color: '#f59e0b', icon: '💰' },
         ].map((s, i) => (
@@ -470,7 +470,7 @@ export default function Quotations() {
       {/* Filters */}
       <div className="qt-filters">
         <div className="qt-search">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
           <input type="text" placeholder="Search by number, customer..."
             value={search} onChange={e => setSearch(e.target.value)} />
           {search && <button className="qt-clear" onClick={() => setSearch('')}>✕</button>}
@@ -543,14 +543,14 @@ export default function Quotations() {
                         {pdfLoading[q._id]
                           ? <span className="qt-spinner-sm" />
                           : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                              <polyline points="14 2 14 8 20 8"/>
-                              <path d="M9 13h6M9 17h4"/>
-                              <path d="M8 10h.01"/>
-                            </svg>
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <path d="M9 13h6M9 17h4" />
+                            <path d="M8 10h.01" />
+                          </svg>
                         }
                       </button>
-                      <button
+                      {/* <button
                         className="qt-action whatsapp"
                         title="Share on WhatsApp"
                         onClick={() => {
@@ -565,14 +565,14 @@ export default function Quotations() {
                           window.open(`https://wa.me/?text=${msg}`, '_blank');
                         }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" />
                         </svg>
-                      </button>
+                      </button> */}
                       <button className="qt-action edit" onClick={() => handleEdit(q)} title="Edit">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                       </button>
                       <button className="qt-action delete" onClick={() => handleDelete(q._id)} title="Delete">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
                       </button>
                     </td>
                   </tr>

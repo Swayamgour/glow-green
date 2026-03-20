@@ -99,9 +99,9 @@ const userRole = data.role === 'admin' ? 'Admin' : 'Sales Executive';
           </button>
         </form>
 
-        <div className="login-footer">
+        {/* <div className="login-footer">
           <p>Contact your admin to get access</p>
-        </div>
+        </div> */}
       </div>
     </div>
   );

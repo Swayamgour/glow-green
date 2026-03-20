@@ -21,6 +21,7 @@ function App() {
       {!user ? (
         <Login onLogin={handleLogin} />
       ) : (
+        
         <Dashboard user={user} onLogout={handleLogout} />
       )}
     </>
