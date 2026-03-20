@@ -10,6 +10,7 @@ const app = express();
 app.use(cors({
   origin: [
     'https://glow-green.vercel.app',
+    'https://glow-green-alpha.vercel.app/',
     'http://localhost:5173',
     'http://localhost:5174',
   ],
