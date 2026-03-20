@@ -24,7 +24,3 @@ dist-ssr
 *.sw?
 
 # Environment files
-.env
-.env.local
-.env.production
-.env.development
