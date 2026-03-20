@@ -1,6 +1,6 @@
 import api from './api';
 
-const BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+const BASE = (import.meta.env.VITE_API_URL );
 
 export const fetchTDSList = (params = {}) => {
   const q = new URLSearchParams(params).toString();

@@ -1,4 +1,4 @@
-const BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+const BASE = (import.meta.env.VITE_API_URL );
 
 const downloadReport = async (endpoint, filename, params = {}) => {
   const query = new URLSearchParams(

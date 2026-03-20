@@ -1,6 +1,6 @@
 import api from './api';
 
-const BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+const BASE = (import.meta.env.VITE_API_URL );
 
 export const fetchProducts = (params = {}) => {
   const query = new URLSearchParams(params).toString();
