@@ -9,39 +9,21 @@ const app = express();
 // ─── Middleware ───────────────────────────────────────────────────────────────
 // const cors = require('cors');
 
-// ✅ Dynamic + safe CORS
-app.use(cors({
-  origin: (origin, callback) => {
-    // allow requests with no origin (mobile apps / postman)
-    if (!origin) return callback(null, true);
-
-    const allowedOrigins = [
-      'https://glow-green.vercel.app',
-      'https://glow-green-alpha.vercel.app',
-      'http://localhost:5173',
-      'http://localhost:5174',
-    ];
-
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(null, true); // 🔥 temporarily allow all (debug safe)
-    }
-  },
+const corsOptions = {
+  origin: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+};
 
-// ✅ IMPORTANT: preflight fix
-app.options('*', cors());
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
-// ✅ EXTRA SAFETY (fix for render / auth middleware issues)
-app.use((req, res, next) => {
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// ─── Middleware ───────────────────────────────────────────────────────────────
+
+
 
 app.use(express.json());
 app.use((req, res, next) => {
