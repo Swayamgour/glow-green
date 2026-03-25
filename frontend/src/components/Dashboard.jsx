@@ -943,11 +943,13 @@ function Dashboard({ user, onLogout }) {
                                 setShowPasswordModel(true);
 
                                 try {
+                                  const token = localStorage.getItem('gg_token');
+
                                   const res = await axios.get(
                                     `${SERVER_URL}/api/executives/${exec._id}/view-password`,
                                     {
                                       headers: {
-                                        Authorization: `Bearer ${localStorage.getItem('gg_token')}`,
+                                        Authorization: `Bearer ${token}`, // ✅ fixed
                                       },
                                     }
                                   );

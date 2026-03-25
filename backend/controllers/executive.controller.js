@@ -5,16 +5,13 @@ const path = require('path');
 // ─── GET all executives ───────────────────────────────────────────────────────
 const getAllExecutives = async (req, res) => {
   try {
-    const executives = await Executive.find()
-      .select('name email phone plainPassword createdAt')
-      .sort({ createdAt: -1 });
-
+    const executives = await Executive.find().select('-password').sort({ createdAt: -1 });
     res.status(200).json({ success: true, data: executives });
-
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 // ─── GET single executive ─────────────────────────────────────────────────────
 const getExecutiveById = async (req, res) => {
   try {
@@ -32,9 +29,9 @@ const getExecutiveById = async (req, res) => {
 const createExecutive = async (req, res) => {
   try {
     const AuthUser = require('../models/AuthUser.model');
-    const name = req.body?.name || '';
-    const phone = req.body?.phone || '';
-    const email = req.body?.email || '';
+    const name     = req.body?.name     || '';
+    const phone    = req.body?.phone    || '';
+    const email    = req.body?.email    || '';
     const password = req.body?.password || '';
 
     if (!name || !phone || !email || !password) {
@@ -50,9 +47,9 @@ const createExecutive = async (req, res) => {
     }
 
     const executiveData = {
-      name: name.trim(),
-      phone: phone.trim(),
-      email: email.trim().toLowerCase(),
+      name:   name.trim(),
+      phone:  phone.trim(),
+      email:  email.trim().toLowerCase(),
       status: 'active',
     };
 
@@ -64,11 +61,11 @@ const createExecutive = async (req, res) => {
     console.log('Executive created:', executive._id);
 
     await AuthUser.create({
-      name: executive.name,
-      email: executive.email,
-      password: password,
+      name:          executive.name,
+      email:         executive.email,
+      password:      password,
       plainPassword: password,
-      role: 'executive',
+      role:          'executive',
     });
     console.log('AuthUser created');
 
@@ -95,11 +92,11 @@ const updateExecutive = async (req, res) => {
       fs.unlinkSync(req.file.path);
     }
 
-    if (name !== undefined) executive.name = name;
-    if (phone !== undefined) executive.phone = phone;
-    if (email !== undefined) executive.email = email;
+    if (name     !== undefined) executive.name     = name;
+    if (phone    !== undefined) executive.phone    = phone;
+    if (email    !== undefined) executive.email    = email;
     if (password !== undefined) executive.password = password;
-    if (status !== undefined) executive.status = status;
+    if (status   !== undefined) executive.status   = status;
 
     await executive.save();
 
@@ -143,7 +140,7 @@ const updateExecutivePassword = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Login account not found for this executive' });
     }
 
-    authUser.password = password;
+    authUser.password      = password;
     authUser.plainPassword = password;
     await authUser.save();
 
