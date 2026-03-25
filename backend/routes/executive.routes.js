@@ -16,7 +16,7 @@ const {
 router.get('/', protect, getAllExecutives);
 router.post('/', protect, adminOnly, upload.single('avatar'), createExecutive);
 router.patch('/:id/password', protect, adminOnly, updateExecutivePassword);
-router.get('/:id/view-password', protect, adminOnly, viewExecutivePassword);
+router.get('/:id/view-password',  adminOnly, viewExecutivePassword);
 router.get('/:id', protect, getExecutiveById);
 router.put('/:id', protect, adminOnly, upload.single('avatar'), updateExecutive);
 router.delete('/:id', protect, adminOnly, deleteExecutive);
