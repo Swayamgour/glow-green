@@ -69,9 +69,9 @@ function ConfirmationDialog({ isOpen, title, message, onConfirm, onCancel }) {
           </button>
         </div>
         <div className="modal-footer" style={{ justifyContent: 'center', gap: '12px', paddingTop: '20px' }}>
-          <button className="btn-reset" onClick={onCancel}>
+          {/* <button className="btn-reset" onClick={onCancel}>
             Cancel
-          </button>
+          </button> */}
           <button className="btn-primary" style={{ background: '#dc2626', borderColor: '#dc2626' }} onClick={onConfirm}>
             Confirm
           </button>
@@ -243,9 +243,9 @@ function ChangePasswordModal({ isOpen, executive, onClose, onPasswordChange }) {
         </div>
 
         <div className="modal-footer" style={{ justifyContent: 'flex-end', gap: '12px' }}>
-          <button className="btn-reset" onClick={handleClose}>
+          {/* <button className="btn-reset" onClick={handleClose}>
             Cancel
-          </button>
+          </button> */}
           <button className="btn-primary" onClick={handleSubmit} disabled={saving}>
             {saving ? (
               <>
@@ -1779,13 +1779,40 @@ function Dashboard({ user, onLogout }) {
 
         : (
 
-          showPasswordModel && <div className="modal-overlay" onClick={() => setPwModal(null)}>
+          showPasswordModel &&
+
+          <div className="modal-overlay" onClick={() => setPwModal(null)}>
             <div className="modal-card" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
               <div className="modal-header">
-                Loading..
+                <div className="modal-title-group">
+                  <div className="modal-lead-avatar" style={{ background: '#f0fdf4', color: '#16a34a' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                  </div>
+
+                </div>
+                <button className="modal-close" onClick={() => { setPwModal(null); setShowPasswordModel(false) }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
               </div>
+
+              <div className="modal-body" style={{ padding: '20px 24px' }}>
+
+                {/* <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>Current Password</p> */}
+
+                <p>Loading...</p>
+
+              </div>
+
             </div>
           </div>
+
+
+
+
         )
       }
 
@@ -1805,7 +1832,7 @@ function Dashboard({ user, onLogout }) {
         onConfirm={confirmationDialog.onConfirm}
         onCancel={confirmationDialog.onCancel}
       />
-    </div>
+    </div >
   );
 }
 
