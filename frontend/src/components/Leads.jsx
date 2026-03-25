@@ -653,7 +653,7 @@ function Leads() {
             </div>
 
             <div className="leads-modal-foot">
-              <button className="leads-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
+              {/* <button className="leads-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button> */}
               <button className="leads-btn-primary" onClick={handleSave} disabled={saving}>
                 {saving && <span className="leads-spinner" />}
                 {saving ? 'Saving...' : editLead ? 'Update Lead' : 'Add Lead'}
@@ -830,7 +830,7 @@ function Leads() {
                                 const token = localStorage.getItem('gg_token');
                                 const res = await fetch(
                                   `${import.meta.env.VITE_API_URL}/api/leads/${viewLead._id}/scan-note`,
-                                  { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd }
+                                  { method: 'POST', headers: { Authorizaion: `Bearer ${token}` }, body: fd }
                                 );
                                 const data = await res.json();
                                 if (data.success) {
@@ -873,7 +873,7 @@ function Leads() {
             </div>
 
             <div className="leads-modal-foot">
-              <button className="leads-btn-ghost" onClick={() => setViewLead(null)}>Close</button>
+              {/* <button className="leads-btn-ghost" onClick={() => setViewLead(null)}>Close</button> */}
               <button className="leads-btn-primary" onClick={() => { setViewLead(null); handleOpenForm(viewLead); }}>
                 Edit Lead
               </button>

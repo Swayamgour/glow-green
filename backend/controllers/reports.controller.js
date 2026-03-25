@@ -3,6 +3,7 @@ const Lead      = require('../models/Lead.model');
 const Customer  = require('../models/Customer.model');
 const Product   = require('../models/Product.model');
 const Quotation = require('../models/Quotation.model');
+const Executive = require('../models/Executive.model');
 
 // ── Shared style helpers ───────────────────────────────────
 const BRAND   = '1A3C6E';

@@ -39,6 +39,236 @@ function Toast({ message, type, onClose }) {
   );
 }
 
+// Confirmation Dialog Component
+function ConfirmationDialog({ isOpen, title, message, onConfirm, onCancel }) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay" style={{ zIndex: 2000 }}>
+      <div className="modal-card" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <div className="modal-title-group">
+            <div className="modal-lead-avatar" style={{ background: '#fee2e2', color: '#dc2626' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14H6L5 6" />
+                <path d="M10 11v6M14 11v6" />
+                <path d="M9 6V4h6v2" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="modal-lead-name">{title}</h3>
+              <p className="modal-lead-sub">{message}</p>
+            </div>
+          </div>
+          <button className="modal-close" onClick={onCancel}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div className="modal-footer" style={{ justifyContent: 'center', gap: '12px', paddingTop: '20px' }}>
+          <button className="btn-reset" onClick={onCancel}>
+            Cancel
+          </button>
+          <button className="btn-primary" style={{ background: '#dc2626', borderColor: '#dc2626' }} onClick={onConfirm}>
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Change Password Modal Component
+function ChangePasswordModal({ isOpen, executive, onClose, onPasswordChange }) {
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async () => {
+    setError('');
+
+    if (!newPassword || newPassword.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await onPasswordChange(executive._id, executive.name, newPassword);
+      onClose();
+    } catch (err) {
+      setError(err.message || 'Failed to update password');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClose = () => {
+    setNewPassword('');
+    setConfirmPassword('');
+    setError('');
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay" style={{ zIndex: 2000 }} onClick={handleClose}>
+      <div className="modal-card" style={{ maxWidth: 450 }} onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <div className="modal-title-group">
+            <div className="modal-lead-avatar" style={{ background: '#eff6ff', color: '#3b82f6' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="modal-lead-name">Change Password</h3>
+              <p className="modal-lead-sub">{executive?.name}</p>
+            </div>
+          </div>
+          <button className="modal-close" onClick={handleClose}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="modal-body" style={{ padding: '20px 24px' }}>
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, display: 'block', color: 'var(--text-secondary)' }}>
+              New Password <span className="required">*</span>
+            </label>
+            <div className="input-wrapper">
+              <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Enter new password (min 6 characters)"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+              <button
+                className="eye-btn"
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}
+              >
+                {showPassword ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, display: 'block', color: 'var(--text-secondary)' }}>
+              Confirm Password <span className="required">*</span>
+            </label>
+            <div className="input-wrapper">
+              <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                placeholder="Confirm new password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+              <button
+                className="eye-btn"
+                type="button"
+                onClick={() => setShowConfirmPassword(v => !v)}
+                style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}
+              >
+                {showConfirmPassword ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {error && (
+            <div style={{
+              background: '#fee2e2',
+              color: '#dc2626',
+              padding: '10px 12px',
+              borderRadius: 8,
+              fontSize: 12,
+              marginTop: 12
+            }}>
+              {error}
+            </div>
+          )}
+
+          <div style={{ marginTop: 8, fontSize: 11, color: '#9ca3af' }}>
+            Password must be at least 6 characters long
+          </div>
+        </div>
+
+        <div className="modal-footer" style={{ justifyContent: 'flex-end', gap: '12px' }}>
+          <button className="btn-reset" onClick={handleClose}>
+            Cancel
+          </button>
+          <button className="btn-primary" onClick={handleSubmit} disabled={saving}>
+            {saving ? (
+              <>
+                <span className="spinner" style={{ marginRight: 6 }} />
+                Saving...
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6 }}>
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
+                </svg>
+                Update Password
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 function Dashboard({ user, onLogout }) {
   const currentUser = getUser();
@@ -47,6 +277,20 @@ function Dashboard({ user, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('gg_theme') === 'dark');
 
+  // Confirmation dialog state
+  const [confirmationDialog, setConfirmationDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    onCancel: null
+  });
+
+  // Change password modal state
+  const [changePasswordModal, setChangePasswordModal] = useState({
+    isOpen: false,
+    executive: null
+  });
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
@@ -104,6 +348,7 @@ function Dashboard({ user, onLogout }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [pwModal, setPwModal] = useState(null); // { id, name, password, needsReset }
+  const [showPasswordModel, setShowPasswordModel] = useState(false)
 
   // Leads state
   const [leads, setLeads] = useState([]);
@@ -245,14 +490,25 @@ function Dashboard({ user, onLogout }) {
   };
 
   const handleDeleteExecutive = async (id) => {
-    if (!window.confirm('Delete this executive?')) return;
-    try {
-      await deleteExecutive(id);
-      showToast('Executive deleted');
-      loadExecutives();
-    } catch (err) {
-      showToast(err.message || 'Failed to delete', 'error');
-    }
+    setConfirmationDialog({
+      isOpen: true,
+      title: 'Delete Executive',
+      message: 'Are you sure you want to delete this executive? This action cannot be undone.',
+      onConfirm: async () => {
+        try {
+          await deleteExecutive(id);
+          showToast('Executive deleted');
+          loadExecutives();
+          setConfirmationDialog({ isOpen: false, title: '', message: '', onConfirm: null, onCancel: null });
+        } catch (err) {
+          showToast(err.message || 'Failed to delete', 'error');
+          setConfirmationDialog({ isOpen: false, title: '', message: '', onConfirm: null, onCancel: null });
+        }
+      },
+      onCancel: () => {
+        setConfirmationDialog({ isOpen: false, title: '', message: '', onConfirm: null, onCancel: null });
+      }
+    });
   };
 
   const handleChangeExecPassword = async (id, name, newPassword) => {
@@ -268,11 +524,14 @@ function Dashboard({ user, onLogout }) {
       const data = await res.json();
       if (data.success) {
         showToast(`Password updated for ${name}`);
+        return true;
       } else {
         showToast(data.message || 'Failed to update password', 'error');
+        return false;
       }
     } catch (err) {
       showToast('Failed to update password', 'error');
+      return false;
     }
   };
 
@@ -310,24 +569,47 @@ function Dashboard({ user, onLogout }) {
   };
 
   const handleDeleteLead = async (id) => {
-    if (!window.confirm('Delete this lead?')) return;
-    try {
-      await deleteLead(id);
-      showToast('Lead deleted');
-      loadLeads();
-    } catch (err) {
-      showToast(err.message || 'Failed to delete', 'error');
-    }
+    setConfirmationDialog({
+      isOpen: true,
+      title: 'Delete Lead',
+      message: 'Are you sure you want to delete this lead? This action cannot be undone.',
+      onConfirm: async () => {
+        try {
+          await deleteLead(id);
+          showToast('Lead deleted');
+          loadLeads();
+          setConfirmationDialog({ isOpen: false, title: '', message: '', onConfirm: null, onCancel: null });
+        } catch (err) {
+          showToast(err.message || 'Failed to delete', 'error');
+          setConfirmationDialog({ isOpen: false, title: '', message: '', onConfirm: null, onCancel: null });
+        }
+      },
+      onCancel: () => {
+        setConfirmationDialog({ isOpen: false, title: '', message: '', onConfirm: null, onCancel: null });
+      }
+    });
   };
 
   const handleStatusChange = async (id, status) => {
-    try {
-      await updateLeadStatus(id, status);
-      showToast('Status updated');
-      loadLeads();
-    } catch (err) {
-      showToast(err.message || 'Failed to update status', 'error');
-    }
+    setConfirmationDialog({
+      isOpen: true,
+      title: 'Change Status',
+      message: `Are you sure you want to change this lead's status to "${status}"?`,
+      onConfirm: async () => {
+        try {
+          await updateLeadStatus(id, status);
+          showToast('Status updated');
+          loadLeads();
+          setConfirmationDialog({ isOpen: false, title: '', message: '', onConfirm: null, onCancel: null });
+        } catch (err) {
+          showToast(err.message || 'Failed to update status', 'error');
+          setConfirmationDialog({ isOpen: false, title: '', message: '', onConfirm: null, onCancel: null });
+        }
+      },
+      onCancel: () => {
+        setConfirmationDialog({ isOpen: false, title: '', message: '', onConfirm: null, onCancel: null });
+      }
+    });
   };
 
   // ─── Modal field save (assignedTo / followUpDate) ─────────────────────────
@@ -404,26 +686,37 @@ function Dashboard({ user, onLogout }) {
   const handleToggle = async (exec) => {
     const updatedStatus = exec.status === "active" ? "inactive" : "active";
 
-    try {
-      await updateExecutive(exec._id, { status: updatedStatus });
+    setConfirmationDialog({
+      isOpen: true,
+      title: 'Change Status',
+      message: `Are you sure you want to change ${exec.name}'s status from "${exec.status}" to "${updatedStatus}"?`,
+      onConfirm: async () => {
+        try {
+          await updateExecutive(exec._id, { status: updatedStatus });
 
-      setExecutives((prev) =>
-        prev.map((item) =>
-          item._id === exec._id
-            ? { ...item, status: updatedStatus }
-            : item
-        )
-      );
+          setExecutives((prev) =>
+            prev.map((item) =>
+              item._id === exec._id
+                ? { ...item, status: updatedStatus }
+                : item
+            )
+          );
 
-      showToast("Status updated");
-    } catch (err) {
-      console.log(err);
-
-      showToast(
-        err.response?.data?.message || err.message || "Failed to update status",
-        "error"
-      );
-    }
+          showToast("Status updated");
+          setConfirmationDialog({ isOpen: false, title: '', message: '', onConfirm: null, onCancel: null });
+        } catch (err) {
+          console.log(err);
+          showToast(
+            err.response?.data?.message || err.message || "Failed to update status",
+            "error"
+          );
+          setConfirmationDialog({ isOpen: false, title: '', message: '', onConfirm: null, onCancel: null });
+        }
+      },
+      onCancel: () => {
+        setConfirmationDialog({ isOpen: false, title: '', message: '', onConfirm: null, onCancel: null });
+      }
+    });
   };
 
   const navItems = [
@@ -454,10 +747,10 @@ function Dashboard({ user, onLogout }) {
       id: 'reports', label: 'Reports',
       icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>,
     }] : []),
-    {
-      id: 'mom', label: 'Minutes of Meeting', badge: null,
-      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>,
-    },
+    // {
+    //   id: 'mom', label: 'Minutes of Meeting', badge: null,
+    //   icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>,
+    // },
   ];
 
   // ─── Page title ───────────────────────────────────────────────────────────────
@@ -614,28 +907,19 @@ function Dashboard({ user, onLogout }) {
                         <td>{exec.name}</td>
                         <td>{exec.phone}</td>
                         <td>{exec.email}</td>
-                        {/* <td><span className={`status-badge ${exec.status}`}>{exec.status === 'active' ? 'Active' : 'Inactive'}</span></td> */}
-
-
                         <td>
                           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-
-                            {/* MUI Switch */}
                             <Switch
                               checked={exec.status === "active"}
                               onChange={() => handleToggle(exec)}
                               inputProps={{ "aria-label": "controlled" }}
-                              color="success" // green color
+                              color="success"
                             />
-
-                            {/* Status Text */}
                             <span
-                              className={`status-badge ${exec.status === "active" ? "active" : "inactive"
-                                }`}
+                              className={`status-badge ${exec.status === "active" ? "active" : "inactive"}`}
                             >
                               {exec.status === "active" ? "Active" : "Inactive"}
                             </span>
-
                           </div>
                         </td>
                         <td>
@@ -644,14 +928,7 @@ function Dashboard({ user, onLogout }) {
                               className="action-btn"
                               style={{ background: '#eff6ff', color: '#3b82f6' }}
                               title="Change Password"
-                              onClick={() => {
-                                const newPassword = window.prompt(`Set new password for ${exec.name} (min 6 characters):`);
-                                if (newPassword && newPassword.length >= 6) {
-                                  handleChangeExecPassword(exec._id, exec.name, newPassword);
-                                } else if (newPassword) {
-                                  alert('Password must be at least 6 characters');
-                                }
-                              }}
+                              onClick={() => setChangePasswordModal({ isOpen: true, executive: exec })}
                             >
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                             </button>
@@ -660,6 +937,7 @@ function Dashboard({ user, onLogout }) {
                               style={{ background: '#f0fdf4', color: '#16a34a' }}
                               title="View Password"
                               onClick={async () => {
+                                setShowPasswordModel(true)
                                 try {
                                   const res = await fetch(`${SERVER_URL}/api/executives/${exec._id}/view-password`, {
                                     method: 'GET',
@@ -1027,7 +1305,8 @@ function Dashboard({ user, onLogout }) {
             </div>
             <div className="table-container">
               <table className="data-table">
-                <thead><tr><th>Name</th><th>Phone</th><th>Source</th><th>Status</th><th>Value</th></tr></thead>
+                <thead><tr>
+                  <th>Name</th><th>Phone</th><th>Source</th><th>Status</th><th>Value</th></tr> </thead>
                 <tbody>
                   {leads.slice(0, 5).map(lead => (
                     <tr key={lead._id}>
@@ -1046,8 +1325,8 @@ function Dashboard({ user, onLogout }) {
           <div className="card activity-card">
             <div className="card-header"><h3>Executives ({executives.length})</h3></div>
             <div className="activity-list">
-              {executives.slice(0, 5).map(exec => (
-                <div key={exec._id} className="activity-item">
+              {executives.slice(0, 5).map((exec, index) => (
+                <div key={index} className="activity-item">
                   <div className="activity-dot" />
                   <div className="activity-content">
                     <p className="activity-action">{exec.name}</p>
@@ -1423,88 +1702,109 @@ function Dashboard({ user, onLogout }) {
       )}
 
       {/* ── View Password Modal ─────────────────────────────────────────────── */}
-      {pwModal && (
-        <div className="modal-overlay" onClick={() => setPwModal(null)}>
-          <div className="modal-card" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-title-group">
-                <div className="modal-lead-avatar" style={{ background: '#f0fdf4', color: '#16a34a' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      {pwModal ?
+        (
+          <div className="modal-overlay" onClick={() => setPwModal(null)}>
+            <div className="modal-card" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <div className="modal-title-group">
+                  <div className="modal-lead-avatar" style={{ background: '#f0fdf4', color: '#16a34a' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="modal-lead-name">{pwModal.needsReset ? 'Set Password' : 'View Password'}</h3>
+                    <p className="modal-lead-sub">{pwModal.name}</p>
+                  </div>
+                </div>
+                <button className="modal-close" onClick={() => { setPwModal(null); setShowPasswordModel(false) }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
-                </div>
-                <div>
-                  <h3 className="modal-lead-name">{pwModal.needsReset ? 'Set Password' : 'View Password'}</h3>
-                  <p className="modal-lead-sub">{pwModal.name}</p>
-                </div>
+                </button>
               </div>
-              <button className="modal-close" onClick={() => setPwModal(null)}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
+              <div className="modal-body" style={{ padding: '20px 24px' }}>
+                {!pwModal.needsReset ? (
+                  <>
+                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>Current Password</p>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      background: 'var(--bg-secondary)', border: '1px solid #e5e7eb',
+                      borderRadius: 8, padding: '10px 14px',
+                    }}>
+                      <code style={{ flex: 1, fontSize: 15, fontWeight: 700, letterSpacing: 1, color: 'var(--text-primary)', wordBreak: 'break-all' }}>
+                        {pwModal.password}
+                      </code>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(pwModal.password).then(() => { showToast('Password copied!'); setPwModal(null); setShowPasswordModel(false) })}
+                        style={{ flexShrink: 0, background: '#eff6ff', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: '#3b82f6', fontWeight: 600, fontSize: 12 }}
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{
+                      background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a',
+                      borderRadius: 8, padding: '10px 12px', marginBottom: 12, fontSize: 12, lineHeight: 1.4,
+                    }}>
+                      This account was created before password storage was added. Set a new password below to save it.
+                    </div>
+                    <div className="input-wrapper">
+                      <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                      <input id="pw-reset-input" type="text" placeholder="Enter new password (min 6 characters)" style={{ fontFamily: 'monospace' }} />
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="modal-footer">
+                {pwModal.needsReset && (
+                  <button
+                    className="btn-primary"
+                    onClick={async () => {
+                      const newPw = document.getElementById('pw-reset-input')?.value?.trim() || '';
+                      if (!newPw || newPw.length < 6) { showToast('Password must be at least 6 characters', 'error'); return; }
+                      await handleChangeExecPassword(pwModal.id, pwModal.name, newPw);
+                      setPwModal(null);
+                    }}
+                  >
+                    Save Password
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="modal-body" style={{ padding: '20px 24px' }}>
-              {!pwModal.needsReset ? (
-                <>
-                  <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>Current Password</p>
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    background: 'var(--bg-secondary)', border: '1px solid #e5e7eb',
-                    borderRadius: 8, padding: '10px 14px',
-                  }}>
-                    <code style={{ flex: 1, fontSize: 15, fontWeight: 700, letterSpacing: 1, color: 'var(--text-primary)', wordBreak: 'break-all' }}>
-                      {pwModal.password}
-                    </code>
-                    <button
-                      onClick={() => navigator.clipboard.writeText(pwModal.password).then(() => { showToast('Password copied!'); setPwModal(null); })}
-                      style={{ flexShrink: 0, background: '#eff6ff', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: '#3b82f6', fontWeight: 600, fontSize: 12 }}
-                    >
-                      Copy
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div style={{
-                    background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a',
-                    borderRadius: 8, padding: '10px 12px', marginBottom: 12, fontSize: 12, lineHeight: 1.4,
-                  }}>
-                    This account was created before password storage was added. Set a new password below to save it.
-                  </div>
-                  <div className="input-wrapper">
-                    <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-                    <input id="pw-reset-input" type="text" placeholder="Enter new password (min 6 characters)" style={{ fontFamily: 'monospace' }} />
-                  </div>
-                </>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button className="btn-reset" onClick={() => setPwModal(null)}>Close</button>
-              {pwModal.needsReset ? (
-                <button
-                  className="btn-primary"
-                  onClick={async () => {
-                    const newPw = document.getElementById('pw-reset-input')?.value?.trim() || '';
-                    if (!newPw || newPw.length < 6) { showToast('Password must be at least 6 characters', 'error'); return; }
-                    await handleChangeExecPassword(pwModal.id, pwModal.name, newPw);
-                    setPwModal(null);
-                  }}
-                >
-                  Save Password
-                </button>
-              ) : (
-                <button
-                  className="btn-primary"
-                  onClick={() => navigator.clipboard.writeText(pwModal.password).then(() => { showToast('Password copied!'); setPwModal(null); })}
-                >
-                  Copy & Close
-                </button>
-              )}
+          </div>)
+
+        : (
+
+          showPasswordModel && <div className="modal-overlay" onClick={() => setPwModal(null)}>
+            <div className="modal-card" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                Loading..
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={changePasswordModal.isOpen}
+        executive={changePasswordModal.executive}
+        onClose={() => setChangePasswordModal({ isOpen: false, executive: null })}
+        onPasswordChange={handleChangeExecPassword}
+      />
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={confirmationDialog.isOpen}
+        title={confirmationDialog.title}
+        message={confirmationDialog.message}
+        onConfirm={confirmationDialog.onConfirm}
+        onCancel={confirmationDialog.onCancel}
+      />
     </div>
   );
 }

@@ -300,16 +300,7 @@ export default function Reports() {
       </div>
 
       {/* Help section */}
-      <div className="rpt-help">
-        <h4>📌 About the reports</h4>
-        <ul>
-          <li>All exports are <strong>.xlsx</strong> files compatible with Microsoft Excel, Google Sheets, and LibreOffice.</li>
-          <li>Reports include colour-coded rows — <span style={{color:'#1d4ed8'}}>blue for open</span>, <span style={{color:'#166534'}}>green for won/accepted</span>, <span style={{color:'#991b1b'}}>red for lost/rejected</span>.</li>
-          <li>Overdue follow-up dates are highlighted in <strong style={{color:'#dc2626'}}>red</strong> in the Leads report.</li>
-          <li>The <strong>Master Report</strong> exports all modules in a single workbook with a Dashboard summary sheet.</li>
-          <li>Date range applies to record creation date (or quotation date for the Quotation report).</li>
-        </ul>
-      </div>
+     
     </div>
   );
 }

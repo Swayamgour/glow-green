@@ -1,3 +1,5 @@
+const Executive = require('../models/Executive.model');
+
 const mongoose = require('mongoose');
 
 const customerSchema = new mongoose.Schema({
@@ -83,7 +85,12 @@ const customerSchema = new mongoose.Schema({
   conperson: { type: String, trim: true, default: '' },
   smanid: { type: String, trim: true, default: '' },
   salemanname: { type: String, trim: true, default: '' },
-  activeyn: { type: String, trim: true, default: 'Y' }
+  activeyn: { type: String, trim: true, default: 'Y' },
+
+  assignedTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Executive'
+  }
 
 }, { timestamps: true });
 
