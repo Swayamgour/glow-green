@@ -918,7 +918,7 @@ function Dashboard({ user, onLogout }) {
                             <span
                               className={`status-badge ${exec.status === "active" ? "active" : "inactive"}`}
                             >
-                              {exec.status === "active" ? "Active" : "Inactive"}
+                              {exec.status === "active" ? "Enable" : "Disable"}
                             </span>
                           </div>
                         </td>
