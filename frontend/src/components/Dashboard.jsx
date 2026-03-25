@@ -23,6 +23,7 @@ import TDS from './TDS';
 import Reports from './Reports';
 import { clearSession, getUser } from '../services/auth.service';
 import Switch from "@mui/material/Switch";
+import axios from "axios";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const getPhotoUrl = (path) => (path ? `${SERVER_URL}/${path}` : null);
@@ -932,18 +933,27 @@ function Dashboard({ user, onLogout }) {
                             >
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                             </button>
+                            {/*  */}
+
                             <button
                               className="action-btn"
                               style={{ background: '#f0fdf4', color: '#16a34a' }}
                               title="View Password"
                               onClick={async () => {
-                                setShowPasswordModel(true)
+                                setShowPasswordModel(true);
+
                                 try {
-                                  const res = await fetch(`${SERVER_URL}/api/executives/${exec._id}/view-password`, {
-                                    method: 'GET',
-                                    headers: { Authorization: `Bearer ${localStorage.getItem('gg_token')}` },
-                                  });
-                                  const data = await res.json();
+                                  const res = await axios.get(
+                                    `${SERVER_URL}/api/executives/${exec._id}/view-password`,
+                                    {
+                                      headers: {
+                                        Authorization: `Bearer ${localStorage.getItem('gg_token')}`,
+                                      },
+                                    }
+                                  );
+
+                                  const data = res.data;
+
                                   if (data.success) {
                                     setPwModal({
                                       id: exec._id,
@@ -954,12 +964,24 @@ function Dashboard({ user, onLogout }) {
                                   } else {
                                     showToast(data.message || 'Could not retrieve password', 'error');
                                   }
+
                                 } catch (err) {
-                                  showToast('Failed to retrieve password', 'error');
+                                  console.error(err);
+
+                                  // 🔥 better error handling
+                                  const msg =
+                                    err.response?.data?.message ||
+                                    err.message ||
+                                    'Failed to retrieve password';
+
+                                  showToast(msg, 'error');
                                 }
                               }}
                             >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
                             </button>
                             <button className="action-btn delete" onClick={() => handleDeleteExecutive(exec._id)}>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
