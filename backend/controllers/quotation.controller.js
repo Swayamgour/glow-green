@@ -1,13 +1,12 @@
 const Quotation = require('../models/Quotation.model');
-// const { generateQuotationPDF } = require('../utils/quotationPdfUtils');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const PDFDocument = require("pdfkit");
 
-const puppeteer = require("puppeteer");
-// const fs = require("fs");
-// const fs = require("fs");
+// ✅ Puppeteer FIX (Render compatible)
+const puppeteer = require("puppeteer-core");
+const chromium = require("@sparticuz/chromium");
 
 const quotationsDir = path.join(process.cwd(), 'quotations');
 if (!fs.existsSync(quotationsDir)) fs.mkdirSync(quotationsDir, { recursive: true });
@@ -322,12 +321,12 @@ const generatePricePDF = async (data, filePath) => {
 
 
 
+
 const downloadPDF = async (req, res) => {
   try {
     // 👉 DB se data lao
-    const quotations = await Quotation.find(); // ya filter laga sakte ho
+    const quotations = await Quotation.find();
 
-    // 👉 map karo apne price format me
     const data = quotations.map(q => ({
       code: q.productCode || q.quotationNo,
       watt: q.watt || "-",
@@ -339,18 +338,85 @@ const downloadPDF = async (req, res) => {
       price: q.grandTotal || 0,
     }));
 
+    // 👉 simple HTML template
+    const html = `
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial; padding: 20px; }
+            h2 { text-align: center; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+            th { background: #f4f4f4; }
+          </style>
+        </head>
+        <body>
+          <h2>Price List</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Code</th>
+                <th>Watt</th>
+                <th>Length</th>
+                <th>Breadth</th>
+                <th>Height</th>
+                <th>Weight</th>
+                <th>Surge</th>
+                <th>Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.map((d, i) => `
+                <tr>
+                  <td>${i + 1}</td>
+                  <td>${d.code}</td>
+                  <td>${d.watt}</td>
+                  <td>${d.length}</td>
+                  <td>${d.breadth}</td>
+                  <td>${d.height}</td>
+                  <td>${d.weight}</td>
+                  <td>${d.surge}</td>
+                  <td>₹ ${d.price}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    // 👉 Puppeteer launch (Render compatible)
+    const browser = await puppeteer.launch({
+      args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
+
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "networkidle0" });
+
     const fileName = `price_list_${Date.now()}.pdf`;
     const filePath = path.join(quotationsDir, fileName);
 
-    await generatePricePDF(data, filePath);
+    await page.pdf({
+      path: filePath,
+      format: "A4",
+      printBackground: true,
+    });
+
+    await browser.close();
 
     const baseUrl = `${req.protocol}://${req.get("host")}`;
+
     return res.json({
       success: true,
       pdfUrl: `${baseUrl}/quotations/${fileName}`,
     });
 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
