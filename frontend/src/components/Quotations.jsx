@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   fetchQuotations, createQuotation, updateQuotation,
-  deleteQuotation, updateQuotationStatus, downloadQuotationPDF, getQuotationPdfUrl
+  deleteQuotation, updateQuotationStatus
 } from '../services/quotation.service';
 import { fetchExecutives } from '../services/executive.service';
+import html2pdf from 'html2pdf.js';
 import './Quotations.css';
+import QuotationPdfs from './QuotationPdfs';
 
 const SERIES_OPTIONS = ['GG', 'QT', 'INV', 'EST'];
 const UNITS = ['pcs', 'kg', 'g', 'litre', 'ml', 'box', 'bag', 'metre', 'set', 'other'];
@@ -43,12 +45,16 @@ export default function Quotations() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [view, setView] = useState('list'); // list | form
+  const [view, setView] = useState('list');
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
   const [pdfLoading, setPdfLoading] = useState({});
+  const [pdfPreview, setPdfPreview] = useState({ show: false, quotation: null });
+  const [loadingPdf, setLoadingPdf] = useState(false);
+
+  const pdfContentRef = useRef();
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -70,7 +76,6 @@ export default function Quotations() {
 
   useEffect(() => { load(); }, [load]);
 
-  // ── Totals calculation ────────────────────────────────────
   const calcTotals = (items, discountType, discountValue, taxType, taxRate) => {
     const subtotal = items.reduce((s, i) => s + (Number(i.quantity) || 0) * (Number(i.rate) || 0), 0);
     let discountAmount = discountType === 'percent'
@@ -84,7 +89,6 @@ export default function Quotations() {
 
   const totals = calcTotals(form.items, form.discountType, form.discountValue, form.taxType, form.taxRate);
 
-  // ── Item helpers ──────────────────────────────────────────
   const setItem = (idx, field, value) => {
     const items = form.items.map((it, i) => {
       if (i !== idx) return it;
@@ -98,7 +102,6 @@ export default function Quotations() {
   const addItem = () => setForm(f => ({ ...f, items: [...f.items, { ...emptyItem }] }));
   const removeItem = (idx) => setForm(f => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
 
-  // ── Open form ─────────────────────────────────────────────
   const handleNew = () => {
     setEditId(null);
     setForm(emptyForm);
@@ -165,11 +168,36 @@ export default function Quotations() {
     } catch { showToast('Failed', 'error'); }
   };
 
-  const handleDownloadPDF = async (id) => {
-    setPdfLoading(p => ({ ...p, [id]: true }));
-    try { await downloadQuotationPDF(id); }
-    catch { showToast('PDF download failed', 'error'); }
-    finally { setPdfLoading(p => ({ ...p, [id]: false })); }
+  // PDF Download Function - Frontend only
+  const generatePDF = async (quotation) => {
+    try {
+      setLoadingPdf(true);
+
+      const element = pdfContentRef.current;
+      if (!element) return;
+
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `${quotation.quotationNo || 'quotation'}_${quotation.customerName}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, letterRendering: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      await html2pdf().set(opt).from(element).save();
+
+      showToast('PDF downloaded successfully');
+
+    } catch (err) {
+      console.error(err);
+      showToast('PDF generation failed', 'error');
+    } finally {
+      setLoadingPdf(false); // 🔥 always false at end
+    }
+  };
+  // Show Preview
+  const handleViewPDF = (quotation) => {
+    setPdfPreview({ show: true, quotation });
   };
 
   const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
@@ -181,6 +209,9 @@ export default function Quotations() {
     sent: quotations.filter(q => q.status === 'sent').length,
     accepted: quotations.filter(q => q.status === 'accepted').length,
   };
+
+  // PDF Content Component
+
 
   // ════════════════════════════════════════════════════════════
   // FORM VIEW
@@ -197,15 +228,13 @@ export default function Quotations() {
         <h2>{editId ? 'Edit Quotation' : 'New Quotation'}</h2>
         <button className="qt-btn-primary" onClick={handleSave} disabled={saving}>
           {saving && <span className="qt-spinner" />}
-          {saving ? 'Saving...' : editId ? '💾 Update' : '✨ Create & Generate PDF'}
+          {saving ? 'Saving...' : editId ? '💾 Update' : '✨ Create'}
         </button>
       </div>
 
       <div className="qt-form-grid">
-
         {/* LEFT COLUMN */}
         <div className="qt-form-left">
-
           {/* Quotation Info */}
           <div className="qt-section">
             <h4 className="qt-section-title">📋 Quotation Details</h4>
@@ -294,7 +323,6 @@ export default function Quotations() {
 
         {/* RIGHT COLUMN */}
         <div className="qt-form-right">
-
           {/* Items */}
           <div className="qt-section">
             <div className="qt-section-head">
@@ -423,7 +451,7 @@ export default function Quotations() {
         <button className="qt-btn-ghost" onClick={() => setView('list')}>Cancel</button>
         <button className="qt-btn-primary" onClick={handleSave} disabled={saving}>
           {saving && <span className="qt-spinner" />}
-          {saving ? 'Saving...' : editId ? '💾 Update Quotation' : '✨ Create & Generate PDF'}
+          {saving ? 'Saving...' : editId ? '💾 Update Quotation' : '✨ Create Quotation'}
         </button>
       </div>
     </div>
@@ -433,155 +461,161 @@ export default function Quotations() {
   // LIST VIEW
   // ════════════════════════════════════════════════════════════
   return (
-    <div className="qt-page">
-      {toast && <div className={`qt-toast qt-toast-${toast.type}`}>{toast.type === 'success' ? '✓' : '✕'} {toast.msg}</div>}
+    <>
+      <div className="qt-page">
+        {toast && <div className={`qt-toast qt-toast-${toast.type}`}>{toast.type === 'success' ? '✓' : '✕'} {toast.msg}</div>}
 
-      {/* Header */}
-      <div className="qt-header">
-        <div>
-          <h2>Quotation Management</h2>
-          <p>Create, manage and download professional quotations</p>
+        <div className="qt-header">
+          <div>
+            <h2>Quotation Management</h2>
+            <p>Create, manage and download professional quotations</p>
+          </div>
+          <button className="qt-btn-primary" onClick={handleNew}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            New Quotation
+          </button>
         </div>
-        <button className="qt-btn-primary" onClick={handleNew}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-          New Quotation
-        </button>
-      </div>
 
-      {/* Stats */}
-      <div className="qt-stats">
-        {[
-          { label: 'Total', value: counts.all, color: '#6366f1', icon: '📋' },
-          { label: 'Draft', value: counts.draft, color: '#6b7280', icon: '✏️' },
-          { label: 'Sent', value: counts.sent, color: '#2563eb', icon: '📤' },
-          { label: 'Accepted', value: counts.accepted, color: '#16a34a', icon: '✅' },
-          { label: 'Total Value', value: `₹${Number(quotations.reduce((s, q) => s + (q.grandTotal || 0), 0)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, color: '#f59e0b', icon: '💰' },
-        ].map((s, i) => (
-          <div key={i} className="qt-stat-card" style={{ borderLeftColor: s.color }}>
-            <div className="qt-stat-icon">{s.icon}</div>
-            <div>
-              <div className="qt-stat-num" style={{ color: s.color }}>{s.value}</div>
-              <div className="qt-stat-label">{s.label}</div>
+        <div className="qt-stats">
+          {[
+            { label: 'Total', value: counts.all, color: '#6366f1', icon: '📋' },
+            { label: 'Draft', value: counts.draft, color: '#6b7280', icon: '✏️' },
+            { label: 'Sent', value: counts.sent, color: '#2563eb', icon: '📤' },
+            { label: 'Accepted', value: counts.accepted, color: '#16a34a', icon: '✅' },
+            { label: 'Total Value', value: `₹${Number(quotations.reduce((s, q) => s + (q.grandTotal || 0), 0)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, color: '#f59e0b', icon: '💰' },
+          ].map((s, i) => (
+            <div key={i} className="qt-stat-card" style={{ borderLeftColor: s.color }}>
+              <div className="qt-stat-icon">{s.icon}</div>
+              <div>
+                <div className="qt-stat-num" style={{ color: s.color }}>{s.value}</div>
+                <div className="qt-stat-label">{s.label}</div>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="qt-filters">
-        <div className="qt-search">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-          <input type="text" placeholder="Search by number, customer..."
-            value={search} onChange={e => setSearch(e.target.value)} />
-          {search && <button className="qt-clear" onClick={() => setSearch('')}>✕</button>}
-        </div>
-        <select className="qt-filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-          <option value="">All Statuses</option>
-          {STATUSES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-        </select>
-      </div>
-
-      {/* Table */}
-      <div className="qt-card">
-        <div className="qt-card-head">
-          <h3>Quotations ({quotations.length})</h3>
-          {loading && <span className="qt-loading">Loading...</span>}
+          ))}
         </div>
 
-        {quotations.length === 0 && !loading ? (
-          <div className="qt-empty">
-            <div className="qt-empty-icon">📋</div>
-            <p>No quotations yet. Create your first one.</p>
-            <button className="qt-btn-primary" onClick={handleNew}>New Quotation</button>
+        <div className="qt-filters">
+          <div className="qt-search">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+            <input type="text" placeholder="Search by number, customer..."
+              value={search} onChange={e => setSearch(e.target.value)} />
+            {search && <button className="qt-clear" onClick={() => setSearch('')}>✕</button>}
           </div>
-        ) : (
-          <div className="qt-table-wrap">
-            <table className="qt-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Quotation No.</th>
-                  <th>Customer</th>
-                  <th>Date</th>
-                  <th>Valid Till</th>
-                  <th>Items</th>
-                  <th>Grand Total</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {quotations.map((q, i) => (
-                  <tr key={q._id}>
-                    <td className="qt-num">{i + 1}</td>
-                    <td className="qt-no">{q.quotationNo}</td>
-                    <td className="qt-customer">
-                      <span className="qt-cust-name">{q.customerName}</span>
-                      {q.customerPhone && <span className="qt-cust-ph">{q.customerPhone}</span>}
-                    </td>
-                    <td>{fmtDate(q.date)}</td>
-                    <td>{fmtDate(q.validTill)}</td>
-                    <td className="qt-items-count">{q.items?.length || 0} items</td>
-                    <td className="qt-total">{fmt(q.grandTotal)}</td>
-                    <td>
-                      <select
-                        className="qt-status-select"
-                        value={q.status}
-                        style={{ background: STATUS_STYLE[q.status]?.bg, color: STATUS_STYLE[q.status]?.text }}
-                        onChange={e => handleQuickStatus(q._id, e.target.value)}>
-                        {STATUSES.map(s => (
-                          <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="qt-actions">
-                      <button
-                        className="qt-action pdf"
-                        onClick={() => handleDownloadPDF(q._id)}
-                        disabled={pdfLoading[q._id]}
-                        title="Download PDF">
-                        {pdfLoading[q._id]
-                          ? <span className="qt-spinner-sm" />
-                          : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <select className="qt-filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+            <option value="">All Statuses</option>
+            {STATUSES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+          </select>
+        </div>
+
+        <div className="qt-card">
+          <div className="qt-card-head">
+            <h3>Quotations ({quotations.length})</h3>
+            {loading && <span className="qt-loading">Loading...</span>}
+          </div>
+
+          {quotations.length === 0 && !loading ? (
+            <div className="qt-empty">
+              <div className="qt-empty-icon">📋</div>
+              <p>No quotations yet. Create your first one.</p>
+              <button className="qt-btn-primary" onClick={handleNew}>New Quotation</button>
+            </div>
+          ) : (
+            <div className="qt-table-wrap">
+              <table className="qt-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Quotation No.</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Valid Till</th>
+                    <th>Items</th>
+                    <th>Grand Total</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {quotations.map((q, i) => (
+                    <tr key={q._id}>
+                      <td className="qt-num">{i + 1}</td>
+                      <td className="qt-no">{q.quotationNo}</td>
+                      <td className="qt-customer">
+                        <span className="qt-cust-name">{q.customerName}</span>
+                        {q.customerPhone && <span className="qt-cust-ph">{q.customerPhone}</span>}
+                      </td>
+                      <td>{fmtDate(q.date)}</td>
+                      <td>{fmtDate(q.validTill)}</td>
+                      <td className="qt-items-count">{q.items?.length || 0} items</td>
+                      <td className="qt-total">{fmt(q.grandTotal)}</td>
+                      <td>
+                        <select
+                          className="qt-status-select"
+                          value={q.status}
+                          style={{ background: STATUS_STYLE[q.status]?.bg, color: STATUS_STYLE[q.status]?.text }}
+                          onChange={e => handleQuickStatus(q._id, e.target.value)}>
+                          {STATUSES.map(s => (
+                            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="qt-actions">
+                        <button
+                          className="qt-action pdf"
+                          onClick={() => handleViewPDF(q)}
+                          title="View & Download PDF">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                             <polyline points="14 2 14 8 20 8" />
                             <path d="M9 13h6M9 17h4" />
                             <path d="M8 10h.01" />
                           </svg>
-                        }
-                      </button>
-                      {/* <button
-                        className="qt-action whatsapp"
-                        title="Share on WhatsApp"
-                        onClick={() => {
-                          const msg = `Hello ${q.customerName},%0A%0APlease find your quotation details below:%0A%0A` +
-                            `Quotation No: ${q.quotationNo}%0A` +
-                            `Date: ${fmtDate(q.date)}%0A` +
-                            `Valid Till: ${fmtDate(q.validTill)}%0A` +
-                            `Items: ${q.items?.length || 0} item(s)%0A` +
-                            `Grand Total: ${fmt(q.grandTotal)}%0A%0A` +
-                            `Status: ${q.status?.charAt(0).toUpperCase() + q.status?.slice(1)}%0A%0A` +
-                            `Thank you for your business!`;
-                          window.open(`https://wa.me/?text=${msg}`, '_blank');
-                        }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" />
-                        </svg>
-                      </button> */}
-                      <button className="qt-action edit" onClick={() => handleEdit(q)} title="Edit">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                      </button>
-                      <button className="qt-action delete" onClick={() => handleDelete(q._id)} title="Delete">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                        </button>
+                        <button className="qt-action edit" onClick={() => handleEdit(q)} title="Edit">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                        </button>
+                        <button className="qt-action delete" onClick={() => handleDelete(q._id)} title="Delete">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* PDF Preview Modal */}
+      {pdfPreview.show && pdfPreview.quotation && (
+        <div className="pdf-preview-overlay" onClick={() => setPdfPreview({ show: false, quotation: null })}>
+          <div className="pdf-preview-modal" onClick={e => e.stopPropagation()}>
+            <div className="pdf-preview-header">
+              <h3>
+                {pdfPreview.quotation.quotationNo} - {pdfPreview.quotation.customerName}
+              </h3>
+              <button className="pdf-preview-close" onClick={() => setPdfPreview({ show: false, quotation: null })}>×</button>
+            </div>
+
+            <div className="pdf-preview-content" ref={pdfContentRef}>
+              <QuotationPdfs quotation={pdfPreview.quotation} />
+            </div>
+
+            <div className="pdf-preview-footer">
+
+              <button className="pdf-preview-btn primary" onClick={() => generatePDF(pdfPreview.quotation)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                {loadingPdf ? "Loading..." : 'Download PDF'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

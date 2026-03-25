@@ -301,9 +301,28 @@ const generatePriceListHTML = (data) => {
   `;
 };
 
-
 const generatePricePDF = async (data, filePath) => {
-  const browser = await puppeteer.launch();
+  const isProd = process.env.NODE_ENV === "production";
+
+  let browser;
+
+  if (isProd) {
+    const puppeteer = require("puppeteer-core");
+    const chromium = require("@sparticuz/chromium");
+
+    browser = await puppeteer.launch({
+      args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
+      executablePath: await chromium.executablePath(),
+      headless: true,
+    });
+  } else {
+    const puppeteer = require("puppeteer");
+
+    browser = await puppeteer.launch({
+      headless: true,
+    });
+  }
+
   const page = await browser.newPage();
 
   const html = generatePriceListHTML(data);
@@ -318,6 +337,8 @@ const generatePricePDF = async (data, filePath) => {
 
   await browser.close();
 };
+
+
 
 
 
@@ -421,30 +442,5 @@ const downloadPDF = async (req, res) => {
   }
 };
 
-// GET re-download PDF
-
-// const downloadPDF = async (req, res) => {
-//   try {
-//     const q = await Quotation.findById(req.params.id);
-//     if (!q) return res.status(404).json({ success: false, message: 'Not found' });
-
-//     let fileName = q.pdfPath;
-//     let filePath = path.join(quotationsDir, fileName);
-
-//     // Regenerate if missing
-//     if (!fileName || !fs.existsSync(filePath)) {
-//       fileName = `QT_${q.quotationNo.replace(/[^a-zA-Z0-9]/g, '_')}_${uuidv4().slice(0, 8)}.pdf`;
-//       filePath = path.join(quotationsDir, fileName);
-//       await generateQuotationPDF(q.toObject(), filePath);
-//       q.pdfPath = fileName;
-//       await q.save();
-//     }
-
-//     const baseUrl = `${req.protocol}://${req.get('host')}`;
-//     return res.json({ success: true, pdfUrl: `${baseUrl}/quotations/${fileName}` });
-//   } catch (err) {
-//     return res.status(500).json({ success: false, message: err.message });
-//   }
-// };
 
 module.exports = { getQuotations, getQuotation, createQuotation, updateQuotation, updateStatus, deleteQuotation, downloadPDF };
