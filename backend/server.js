@@ -7,7 +7,7 @@ require('dotenv').config();
 const app = express();
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
-const cors = require('cors');
+// const cors = require('cors');
 
 // ✅ Dynamic + safe CORS
 app.use(cors({
