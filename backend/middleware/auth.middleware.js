@@ -4,13 +4,21 @@ const AuthUser = require('../models/AuthUser.model');
 // Verify JWT and attach user to request
 const protect = async (req, res, next) => {
   try {
+
+    // ✅ 🔥 ALLOW PREFLIGHT REQUEST (MOST IMPORTANT)
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
+
     const authHeader = req.headers.authorization;
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ success: false, message: 'Not authorized, no token' });
     }
 
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
     req.user = await AuthUser.findById(decoded.id).select('-password');
 
     if (!req.user || !req.user.isActive) {
@@ -18,6 +26,7 @@ const protect = async (req, res, next) => {
     }
 
     next();
+
   } catch (err) {
     return res.status(401).json({ success: false, message: 'Not authorized, token invalid' });
   }
