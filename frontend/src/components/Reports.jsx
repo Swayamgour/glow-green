@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import {
-  exportLeadsReport, exportCustomersReport, exportProductsReport,
-  exportQuotationsReport, exportMasterReport
-} from '../services/reports.service';
+  useLazyExportLeadsReportQuery,
+  useLazyExportCustomersReportQuery,
+  useLazyExportProductsReportQuery,
+  useLazyExportQuotationsReportQuery,
+  useLazyExportMasterReportQuery
+} from '../Redux/api';
 import './Reports.css';
 
 const LEAD_STATUSES = ['open', 'in-progress', 'follow-up', 'won', 'lost'];
-const CATEGORIES    = ['new', 'routine', 'closed'];
+const CATEGORIES = ['new', 'routine', 'closed'];
 const PRODUCT_TYPES = ['RM', 'FM'];
-const QT_STATUSES   = ['draft', 'sent', 'accepted', 'rejected', 'expired'];
+const QT_STATUSES = ['draft', 'sent', 'accepted', 'rejected', 'expired'];
 
 const today = () => new Date().toISOString().split('T')[0];
 const firstOfMonth = () => {
@@ -19,83 +22,31 @@ const firstOfYear = () => `${new Date().getFullYear()}-01-01`;
 
 const QUICK_RANGES = [
   { label: 'This Month', from: firstOfMonth, to: today },
-  { label: 'This Year',  from: firstOfYear,  to: today },
-  { label: 'All Time',   from: () => '',     to: () => '' },
-];
-
-const REPORT_CARDS = [
-  {
-    id:      'leads',
-    title:   'Leads Report',
-    desc:    'All leads with status, follow-up dates, expected values and notes count.',
-    icon:    '📋',
-    color:   '#6366f1',
-    bg:      '#ede9fe',
-    sheets:  ['All Leads', 'Summary'],
-    fn:      exportLeadsReport,
-    filters: ['dateRange', 'leadStatus', 'category'],
-  },
-  {
-    id:      'customers',
-    title:   'Customer Report',
-    desc:    'Full customer list with category, assigned executive and contact details.',
-    icon:    '👥',
-    color:   '#059669',
-    bg:      '#d1fae5',
-    sheets:  ['Customers', 'Summary'],
-    fn:      exportCustomersReport,
-    filters: ['dateRange', 'customerStatus', 'category'],
-  },
-  {
-    id:      'products',
-    title:   'Product Report',
-    desc:    'RM and FM product catalogue with pricing, stock and HSN codes.',
-    icon:    '📦',
-    color:   '#0ea5e9',
-    bg:      '#e0f2fe',
-    sheets:  ['All Products', 'RM Products', 'FM Products', 'Summary'],
-    fn:      exportProductsReport,
-    filters: ['productType', 'productStatus'],
-  },
-  {
-    id:      'quotations',
-    title:   'Quotation Report',
-    desc:    'Quotation summary and line-item breakdown with totals and tax.',
-    icon:    '📄',
-    color:   '#f59e0b',
-    bg:      '#fef3c7',
-    sheets:  ['Quotations', 'Line Items', 'Summary'],
-    fn:      exportQuotationsReport,
-    filters: ['dateRange', 'quotationStatus'],
-  },
-  {
-    id:      'master',
-    title:   'Master Report',
-    desc:    'Combined workbook — Dashboard + Leads + Customers + Products + Quotations.',
-    icon:    '🗂️',
-    color:   '#1a3c6e',
-    bg:      '#dbeafe',
-    sheets:  ['Dashboard', 'Leads', 'Customers', 'Products', 'Quotations'],
-    fn:      exportMasterReport,
-    filters: ['dateRange'],
-    featured: true,
-  },
+  { label: 'This Year', from: firstOfYear, to: today },
+  { label: 'All Time', from: () => '', to: () => '' },
 ];
 
 export default function Reports() {
-  const [loading, setLoading]   = useState({});
-  const [toast, setToast]       = useState(null);
-  const [expanded, setExpanded] = useState(null); // which card's filters are open
-  const [filters, setFilters]   = useState({
-    from:           firstOfMonth(),
-    to:             today(),
-    leadStatus:     '',
+  const [loading, setLoading] = useState({});
+  const [toast, setToast] = useState(null);
+  const [expanded, setExpanded] = useState(null);
+  const [filters, setFilters] = useState({
+    from: firstOfMonth(),
+    to: today(),
+    leadStatus: '',
     customerStatus: '',
-    category:       '',
-    productType:    '',
-    productStatus:  '',
-    quotationStatus:'',
+    category: '',
+    productType: '',
+    productStatus: '',
+    quotationStatus: '',
   });
+
+  // Lazy query triggers
+  const [triggerLeads] = useLazyExportLeadsReportQuery();
+  const [triggerCustomers] = useLazyExportCustomersReportQuery();
+  const [triggerProducts] = useLazyExportProductsReportQuery();
+  const [triggerQuotations] = useLazyExportQuotationsReportQuery();
+  const [triggerMaster] = useLazyExportMasterReportQuery();
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -106,32 +57,121 @@ export default function Reports() {
 
   const applyQuickRange = (range) => {
     setF('from', range.from());
-    setF('to',   range.to());
+    setF('to', range.to());
   };
 
   const handleExport = async (card) => {
     setLoading(l => ({ ...l, [card.id]: true }));
     try {
+      // Build params based on card filters
       const params = {};
       if (card.filters.includes('dateRange')) {
         if (filters.from) params.from = filters.from;
-        if (filters.to)   params.to   = filters.to;
+        if (filters.to) params.to = filters.to;
       }
-      if (card.filters.includes('leadStatus')     && filters.leadStatus)     params.status   = filters.leadStatus;
-      if (card.filters.includes('customerStatus') && filters.customerStatus) params.status   = filters.customerStatus;
-      if (card.filters.includes('category')       && filters.category)       params.category = filters.category;
-      if (card.filters.includes('productType')    && filters.productType)    params.type     = filters.productType;
-      if (card.filters.includes('productStatus')  && filters.productStatus)  params.status   = filters.productStatus;
-      if (card.filters.includes('quotationStatus')&& filters.quotationStatus)params.status   = filters.quotationStatus;
+      if (card.filters.includes('leadStatus') && filters.leadStatus) params.status = filters.leadStatus;
+      if (card.filters.includes('customerStatus') && filters.customerStatus) params.status = filters.customerStatus;
+      if (card.filters.includes('category') && filters.category) params.category = filters.category;
+      if (card.filters.includes('productType') && filters.productType) params.type = filters.productType;
+      if (card.filters.includes('productStatus') && filters.productStatus) params.status = filters.productStatus;
+      if (card.filters.includes('quotationStatus') && filters.quotationStatus) params.status = filters.quotationStatus;
 
-      await card.fn(params);
-      showToast(`${card.title} downloaded successfully`);
+      // Trigger the appropriate query
+      let result;
+      switch (card.id) {
+        case 'leads':
+          result = await triggerLeads(params);
+          break;
+        case 'customers':
+          result = await triggerCustomers(params);
+          break;
+        case 'products':
+          result = await triggerProducts(params);
+          break;
+        case 'quotations':
+          result = await triggerQuotations(params);
+          break;
+        case 'master':
+          result = await triggerMaster(params);
+          break;
+        default:
+          throw new Error('Unknown report type');
+      }
+
+      // Handle blob response
+      if (result.data) {
+        const url = window.URL.createObjectURL(result.data);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${card.id}_report.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        showToast(`${card.title} downloaded successfully`);
+      } else {
+        throw new Error('No data received');
+      }
     } catch (err) {
       showToast(err.message || 'Export failed', 'error');
     } finally {
       setLoading(l => ({ ...l, [card.id]: false }));
     }
   };
+
+  const REPORT_CARDS = [
+    {
+      id: 'leads',
+      title: 'Leads Report',
+      desc: 'All leads with status, follow-up dates, expected values and notes count.',
+      icon: '📋',
+      color: '#6366f1',
+      bg: '#ede9fe',
+      sheets: ['All Leads', 'Summary'],
+      filters: ['dateRange', 'leadStatus', 'category'],
+    },
+    {
+      id: 'customers',
+      title: 'Customer Report',
+      desc: 'Full customer list with category, assigned executive and contact details.',
+      icon: '👥',
+      color: '#059669',
+      bg: '#d1fae5',
+      sheets: ['Customers', 'Summary'],
+      filters: ['dateRange', 'customerStatus', 'category'],
+    },
+    {
+      id: 'products',
+      title: 'Product Report',
+      desc: 'RM and FM product catalogue with pricing, stock and HSN codes.',
+      icon: '📦',
+      color: '#0ea5e9',
+      bg: '#e0f2fe',
+      sheets: ['All Products', 'RM Products', 'FM Products', 'Summary'],
+      filters: ['productType', 'productStatus'],
+    },
+    {
+      id: 'quotations',
+      title: 'Quotation Report',
+      desc: 'Quotation summary and line-item breakdown with totals and tax.',
+      icon: '📄',
+      color: '#f59e0b',
+      bg: '#fef3c7',
+      sheets: ['Quotations', 'Line Items', 'Summary'],
+      filters: ['dateRange', 'quotationStatus'],
+    },
+    {
+      id: 'master',
+      title: 'Master Report',
+      desc: 'Combined workbook — Dashboard + Leads + Customers + Products + Quotations.',
+      icon: '🗂️',
+      color: '#1a3c6e',
+      bg: '#dbeafe',
+      sheets: ['Dashboard', 'Leads', 'Customers', 'Products', 'Quotations'],
+      filters: ['dateRange'],
+      featured: true,
+    },
+  ];
 
   return (
     <div className="rpt-page">
@@ -152,7 +192,7 @@ export default function Reports() {
       {/* Global date range + quick ranges */}
       <div className="rpt-global-filters">
         <div className="rpt-gf-label">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
           Date Range
         </div>
         <div className="rpt-date-inputs">
@@ -196,7 +236,7 @@ export default function Reports() {
             <div className="rpt-sheets">
               {card.sheets.map(s => (
                 <span key={s} className="rpt-sheet-tag">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="1"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="1" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="3" x2="9" y2="21" /></svg>
                   {s}
                 </span>
               ))}
@@ -209,9 +249,9 @@ export default function Reports() {
                 <button
                   className={`rpt-filter-toggle-btn ${expanded === card.id ? 'open' : ''}`}
                   onClick={() => setExpanded(expanded === card.id ? null : card.id)}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="11" y1="18" x2="13" y2="18" /></svg>
                   Additional Filters
-                  <svg className={`rpt-chevron ${expanded === card.id ? 'up' : ''}`} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                  <svg className={`rpt-chevron ${expanded === card.id ? 'up' : ''}`} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
                 </button>
 
                 {expanded === card.id && (
@@ -290,7 +330,7 @@ export default function Reports() {
                 </>
               ) : (
                 <>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                   Download Report
                 </>
               )}
@@ -298,9 +338,6 @@ export default function Reports() {
           </div>
         ))}
       </div>
-
-      {/* Help section */}
-     
     </div>
   );
 }

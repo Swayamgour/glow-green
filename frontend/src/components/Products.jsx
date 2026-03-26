@@ -1,10 +1,16 @@
 // Products.jsx
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useRef } from 'react';
 import {
-  fetchProducts, createProduct, updateProduct, deleteProduct,
-  exportProductsExcel, downloadProductTemplate, importProductsExcel
-} from '../services/product.service';
+  useGetProductsQuery,
+  useCreateProductMutation,
+  useUpdateProductMutation,
+  useDeleteProductMutation,
+  useLazyExportProductsExcelQuery,
+  useLazyDownloadProductTemplateQuery,
+  useImportProductsExcelMutation
+} from '../Redux/api';
 import './Products.css';
+import ConfirmationDialog from './ConfirmationDialog';
 
 // Common units
 const UNITS = ['kg', 'g', 'litre', 'ml', 'pcs', 'box', 'bag', 'ton', 'metre', 'other'];
@@ -66,40 +72,47 @@ const emptyForm = {
 };
 
 export default function Products() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-  const [importLoading, setImportLoading] = useState(false);
   const [toast, setToast] = useState(null);
-  const [activeTab, setActiveTab] = useState('basic'); // For modal tabs
+  const [activeTab, setActiveTab] = useState('basic');
   const fileInputRef = useRef();
+
+
+  const [deleteId, setDeleteId] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // Build query params
+  const queryParams = {};
+  if (search) queryParams.search = search;
+  if (filterType) queryParams.type = filterType;
+
+  // RTK Query hooks
+  const {
+    data: productsData = [],
+    isLoading: loading,
+    refetch: refetchProducts
+  } = useGetProductsQuery(queryParams);
+
+  const [createProduct] = useCreateProductMutation();
+  const [updateProduct] = useUpdateProductMutation();
+  const [deleteProduct] = useDeleteProductMutation();
+  const [importProductsExcel] = useImportProductsExcelMutation();
+
+  // Lazy queries for exports and templates
+  const [triggerExport] = useLazyExportProductsExcelQuery();
+  const [triggerTemplate] = useLazyDownloadProductTemplateQuery();
+
+  const products = productsData;
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = {};
-      if (search) params.search = search;
-      if (filterType) params.type = filterType;
-      const res = await fetchProducts(params);
-      setProducts(res.data || []);
-    } catch (err) {
-      showToast(err.message || 'Failed to load', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [search, filterType]);
-
-  useEffect(() => { load(); }, [load]);
 
   const handleOpenForm = (product = null) => {
     if (product) {
@@ -206,55 +219,98 @@ export default function Products() {
       }
 
       if (editProduct) {
-        await updateProduct(editProduct._id, productData);
+        await updateProduct({ id: editProduct._id, ...productData }).unwrap();
         showToast('Product updated successfully');
       } else {
-        await createProduct(productData);
+        await createProduct(productData).unwrap();
         showToast('Product added successfully');
       }
 
       setShowForm(false);
       setEditProduct(null);
       setForm(emptyForm);
-      load();
+      refetchProducts();
     } catch (err) {
-      showToast(err.message || 'Failed to save', 'error');
+      showToast(err.data?.message || err.message || 'Failed to save', 'error');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this product?')) return;
+  const handleDelete = (id) => {
+    setDeleteId(id);
+    setConfirmOpen(true);
+  };
+
+
+  const confirmDelete = async () => {
     try {
-      await deleteProduct(id);
+      await deleteProduct(deleteId).unwrap();
       showToast('Product deleted successfully');
-      load();
+      refetchProducts();
     } catch (err) {
-      showToast(err.message || 'Failed to delete', 'error');
+      showToast(err.data?.message || err.message || 'Failed to delete', 'error');
+    } finally {
+      setConfirmOpen(false);
+      setDeleteId(null);
     }
+  };
+
+  const cancelDelete = () => {
+    setConfirmOpen(false);
+    setDeleteId(null);
   };
 
   const handleImport = async (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    setImportLoading(true);
-
     try {
-      const res = await importProductsExcel(file, type); // 👈 type pass
-
-      if (res.success) {
-        showToast(`${type} imported successfully (${res.data.created} created)`);
-        load();
+      const result = await importProductsExcel({ file, type }).unwrap();
+      if (result.success) {
+        showToast(`${type} imported successfully (${result.data?.created || 0} created)`);
+        refetchProducts();
       } else {
-        showToast(res.message || 'Import failed', 'error');
+        showToast(result.message || 'Import failed', 'error');
       }
-    } catch {
-      showToast('Import failed', 'error');
+    } catch (err) {
+      showToast(err.data?.message || 'Import failed', 'error');
     } finally {
-      setImportLoading(false);
       e.target.value = '';
+    }
+  };
+
+  const handleExport = async (type) => {
+    try {
+      const { data } = await triggerExport(type);
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `products_${type}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      showToast('Export started');
+    } catch (err) {
+      showToast('Export failed', 'error');
+    }
+  };
+
+  const handleDownloadTemplate = async (type) => {
+    try {
+      const { data } = await triggerTemplate(type);
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `product_template_${type}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      showToast('Template downloaded');
+    } catch (err) {
+      showToast('Failed to download template', 'error');
     }
   };
 
@@ -513,6 +569,25 @@ export default function Products() {
     </div>
   );
 
+  // Loading state
+  if (loading && products.length === 0) {
+    return (
+      <div className="prod-page">
+        <div className="prod-header">
+          <div>
+            <h2>Product Management</h2>
+            <p>Loading products...</p>
+          </div>
+        </div>
+        <div className="prod-card">
+          <div className="loading-state" style={{ padding: '40px', textAlign: 'center' }}>
+            Loading product data...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="prod-page">
       {toast && (
@@ -529,23 +604,21 @@ export default function Products() {
         </div>
         <div className="prod-header-actions">
 
-          {/* ✅ TEMPLATE GROUP */}
+          {/* TEMPLATE GROUP */}
           <div className="prod-export-group">
-            <button onClick={() => downloadProductTemplate('RM')} className="prod-btn-outline prod-export-rm">
+            <button onClick={() => handleDownloadTemplate('RM')} className="prod-btn-outline prod-export-rm">
               Template RM
             </button>
-            <button onClick={() => downloadProductTemplate('SM')} className="prod-btn-outline prod-export-sm">
+            <button onClick={() => handleDownloadTemplate('SM')} className="prod-btn-outline prod-export-sm">
               Template SM
             </button>
-            <button onClick={() => downloadProductTemplate('FM')} className="prod-btn-outline prod-export-fm">
+            <button onClick={() => handleDownloadTemplate('FM')} className="prod-btn-outline prod-export-fm">
               Template FM
             </button>
           </div>
 
-          {/* ✅ IMPORT GROUP */}
+          {/* IMPORT GROUP */}
           <div className="prod-export-group">
-
-            {/* RM */}
             <label className="prod-btn-outline prod-export-rm">
               Import RM
               <input
@@ -555,8 +628,6 @@ export default function Products() {
                 onChange={(e) => handleImport(e, 'RM')}
               />
             </label>
-
-            {/* SM */}
             <label className="prod-btn-outline prod-export-sm">
               Import SM
               <input
@@ -566,8 +637,6 @@ export default function Products() {
                 onChange={(e) => handleImport(e, 'SM')}
               />
             </label>
-
-            {/* FM */}
             <label className="prod-btn-outline prod-export-fm">
               Import FM
               <input
@@ -577,23 +646,22 @@ export default function Products() {
                 onChange={(e) => handleImport(e, 'FM')}
               />
             </label>
-
           </div>
 
-          {/* ✅ EXPORT GROUP */}
+          {/* EXPORT GROUP */}
           <div className="prod-export-group">
-            <button onClick={() => exportProductsExcel('RM')} className="prod-btn-outline prod-export-rm">
+            <button onClick={() => handleExport('RM')} className="prod-btn-outline prod-export-rm">
               Export RM
             </button>
-            <button onClick={() => exportProductsExcel('SM')} className="prod-btn-outline prod-export-sm">
+            <button onClick={() => handleExport('SM')} className="prod-btn-outline prod-export-sm">
               Export SM
             </button>
-            <button onClick={() => exportProductsExcel('FM')} className="prod-btn-outline prod-export-fm">
+            <button onClick={() => handleExport('FM')} className="prod-btn-outline prod-export-fm">
               Export FM
             </button>
           </div>
 
-          {/* ✅ ADD BUTTON */}
+          {/* ADD BUTTON */}
           <button className="prod-btn-primary" onClick={() => handleOpenForm()}>
             Add Product
           </button>
@@ -653,7 +721,6 @@ export default function Products() {
             className={`prod-tab ${filterType === tab.key ? 'active' : ''} ${tab.className}`}
             onClick={() => setFilterType(tab.key)}>
             {tab.label}
-            {/* <span className="prod-tab-count">{tab.count}</span> */}
           </button>
         ))}
       </div>
@@ -926,6 +993,14 @@ export default function Products() {
           </div>
         </div>
       )}
+
+      <ConfirmationDialog
+        isOpen={confirmOpen}
+        title="Delete Product"
+        message="Are you sure you want to delete this product? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
     </div>
   );
 }

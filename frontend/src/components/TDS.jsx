@@ -1,19 +1,23 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useRef } from 'react';
 import {
-  fetchTDSList, fetchTDSCategories, uploadTDS,
-  updateTDS, deleteTDS, downloadTDS, getTDSFileUrl
-} from '../services/tds.service';
+  useGetTDSListQuery,
+  useGetTDSCategoriesQuery,
+  useUploadTDSMutation,
+  useUpdateTDSMutation,
+  useDeleteTDSMutation,
+  useLazyDownloadTDSQuery
+} from '../Redux/api';
 import './TDS.css';
 
 const FILE_ICONS = {
-  'application/pdf': { icon: '📄', label: 'PDF',   color: '#dc2626' },
+  'application/pdf': { icon: '📄', label: 'PDF', color: '#dc2626' },
   'application/msword': { icon: '📝', label: 'DOC', color: '#2563eb' },
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': { icon: '📝', label: 'DOCX', color: '#2563eb' },
   'application/vnd.ms-excel': { icon: '📊', label: 'XLS', color: '#16a34a' },
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': { icon: '📊', label: 'XLSX', color: '#16a34a' },
   'image/jpeg': { icon: '🖼️', label: 'JPG', color: '#9333ea' },
-  'image/jpg':  { icon: '🖼️', label: 'JPG', color: '#9333ea' },
-  'image/png':  { icon: '🖼️', label: 'PNG', color: '#9333ea' },
+  'image/jpg': { icon: '🖼️', label: 'JPG', color: '#9333ea' },
+  'image/png': { icon: '🖼️', label: 'PNG', color: '#9333ea' },
 };
 
 const getFileInfo = (mime) => FILE_ICONS[mime] || { icon: '📎', label: 'FILE', color: '#6b7280' };
@@ -24,49 +28,49 @@ const emptyForm = {
 };
 
 export default function TDS() {
-  const [docs, setDocs]               = useState([]);
-  const [categories, setCategories]   = useState([]);
-  const [loading, setLoading]         = useState(false);
-  const [search, setSearch]           = useState('');
-  const [filterCat, setFilterCat]     = useState('');
+  const [search, setSearch] = useState('');
+  const [filterCat, setFilterCat] = useState('');
   const [filterStatus, setFilterStatus] = useState('active');
-  const [showUpload, setShowUpload]   = useState(false);
-  const [editDoc, setEditDoc]         = useState(null);
-  const [viewDoc, setViewDoc]         = useState(null);
-  const [form, setForm]               = useState(emptyForm);
-  const [file, setFile]               = useState(null);
-  const [dragOver, setDragOver]       = useState(false);
-  const [saving, setSaving]           = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
+  const [editDoc, setEditDoc] = useState(null);
+  const [viewDoc, setViewDoc] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+  const [file, setFile] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [downloading, setDownloading] = useState({});
-  const [toast, setToast]             = useState(null);
-  const fileInputRef                  = useRef();
+  const [toast, setToast] = useState(null);
+  const fileInputRef = useRef();
+
+  // Build query params
+  const queryParams = {};
+  if (search) queryParams.search = search;
+  if (filterCat) queryParams.category = filterCat;
+  if (filterStatus) queryParams.status = filterStatus;
+
+  // RTK Query hooks
+  const {
+    data: docsData = [],
+    isLoading: loading,
+    refetch: refetchDocs
+  } = useGetTDSListQuery(queryParams);
+
+  const { data: categoriesData = [] } = useGetTDSCategoriesQuery();
+
+  const [uploadTDS] = useUploadTDSMutation();
+  const [updateTDS] = useUpdateTDSMutation();
+  const [deleteTDS] = useDeleteTDSMutation();
+
+  // Lazy query for download
+  const [triggerDownload] = useLazyDownloadTDSQuery();
+
+  const docs = docsData;
+  const categories = categoriesData;
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
   };
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = {};
-      if (search)       params.search   = search;
-      if (filterCat)    params.category = filterCat;
-      if (filterStatus) params.status   = filterStatus;
-      const [docsRes, catsRes] = await Promise.all([
-        fetchTDSList(params),
-        fetchTDSCategories(),
-      ]);
-      setDocs(docsRes.data || []);
-      setCategories(catsRes.data || []);
-    } catch (err) {
-      showToast(err.message || 'Failed to load', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [search, filterCat, filterStatus]);
-
-  useEffect(() => { load(); }, [load]);
 
   const resetForm = () => { setForm(emptyForm); setFile(null); };
 
@@ -82,11 +86,11 @@ export default function TDS() {
     setForm({
       productName: doc.productName || '',
       productCode: doc.productCode || '',
-      category:    doc.category    || '',
-      version:     doc.version     || '',
+      category: doc.category || '',
+      version: doc.version || '',
       description: doc.description || '',
-      tags:        (doc.tags || []).join(', '),
-      status:      doc.status      || 'active',
+      tags: (doc.tags || []).join(', '),
+      status: doc.status || 'active',
     });
     setShowUpload(true);
     setViewDoc(null);
@@ -94,11 +98,11 @@ export default function TDS() {
 
   const handleFileSelect = (f) => {
     if (!f) return;
-    const allowed = ['application/pdf','application/msword',
+    const allowed = ['application/pdf', 'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'image/jpeg','image/png','image/jpg'];
+      'image/jpeg', 'image/png', 'image/jpg'];
     if (!allowed.includes(f.type)) {
       showToast('Only PDF, Word, Excel and image files allowed', 'error');
       return;
@@ -117,33 +121,41 @@ export default function TDS() {
 
   const handleSave = async () => {
     if (!form.productName) return showToast('Product name is required', 'error');
-    if (!form.version)     return showToast('Version is required', 'error');
+    if (!form.version) return showToast('Version is required', 'error');
     if (!editDoc && !file) return showToast('Please select a file to upload', 'error');
 
     setSaving(true);
     try {
       if (editDoc) {
         // Metadata update only
-        await updateTDS(editDoc._id, {
+        await updateTDS({
+          id: editDoc._id,
           ...form,
           tags: form.tags.split(',').map(t => t.trim()).filter(Boolean)
-        });
+        }).unwrap();
         showToast('Document updated');
       } else {
         // New upload
         const fd = new FormData();
         fd.append('file', file);
-        Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-        const res = await uploadTDS(fd);
-        if (!res.success) throw new Error(res.message);
+        Object.entries(form).forEach(([k, v]) => {
+          if (k === 'tags') {
+            const tagsArray = v.split(',').map(t => t.trim()).filter(Boolean);
+            fd.append(k, JSON.stringify(tagsArray));
+          } else {
+            fd.append(k, v);
+          }
+        });
+        const result = await uploadTDS(fd).unwrap();
+        if (!result.success) throw new Error(result.message);
         showToast('Document uploaded');
       }
       setShowUpload(false);
       resetForm();
       setEditDoc(null);
-      load();
+      refetchDocs();
     } catch (err) {
-      showToast(err.message || 'Failed to save', 'error');
+      showToast(err.data?.message || err.message || 'Failed to save', 'error');
     } finally {
       setSaving(false);
     }
@@ -152,20 +164,29 @@ export default function TDS() {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this document? The file will also be removed.')) return;
     try {
-      await deleteTDS(id);
+      await deleteTDS(id).unwrap();
       showToast('Document deleted');
       if (viewDoc?._id === id) setViewDoc(null);
-      load();
+      refetchDocs();
     } catch (err) {
-      showToast(err.message || 'Failed to delete', 'error');
+      showToast(err.data?.message || err.message || 'Failed to delete', 'error');
     }
   };
 
   const handleDownload = async (doc) => {
     setDownloading(d => ({ ...d, [doc._id]: true }));
     try {
-      downloadTDS(doc._id, doc.fileName);
-    } catch {
+      const { data } = await triggerDownload(doc._id);
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', doc.fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      showToast('Download started');
+    } catch (err) {
       showToast('Download failed', 'error');
     } finally {
       setTimeout(() => setDownloading(d => ({ ...d, [doc._id]: false })), 1500);
@@ -175,23 +196,42 @@ export default function TDS() {
   const handleArchive = async (doc) => {
     try {
       const newStatus = doc.status === 'active' ? 'archived' : 'active';
-      await updateTDS(doc._id, { status: newStatus });
+      await updateTDS({ id: doc._id, status: newStatus }).unwrap();
       showToast(newStatus === 'archived' ? 'Document archived' : 'Document restored');
       if (viewDoc?._id === doc._id) setViewDoc(prev => ({ ...prev, status: newStatus }));
-      load();
-    } catch { showToast('Failed', 'error'); }
+      refetchDocs();
+    } catch (err) {
+      showToast('Failed', 'error');
+    }
   };
 
   const fmtDate = (d) => d
     ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
     : '—';
 
-  const activeDocs   = docs.filter(d => d.status === 'active');
+  const activeDocs = docs.filter(d => d.status === 'active');
   const archivedDocs = docs.filter(d => d.status === 'archived');
 
-  // ── Category counts
+  // Category counts
   const catCounts = {};
   docs.forEach(d => { catCounts[d.category] = (catCounts[d.category] || 0) + 1; });
+
+  // Loading state
+  if (loading && docs.length === 0) {
+    return (
+      <div className="tds-page">
+        <div className="tds-header">
+          <div>
+            <h2>TDS — Technical Data System</h2>
+            <p>Loading documents...</p>
+          </div>
+        </div>
+        <div className="tds-grid">
+          <div className="tds-grid-loading">Loading documents...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="tds-page">
@@ -209,7 +249,7 @@ export default function TDS() {
           <p>Upload, version and download technical documents for your products</p>
         </div>
         <button className="tds-btn-primary" onClick={handleOpenUpload}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
           Upload Document
         </button>
       </div>
@@ -217,10 +257,10 @@ export default function TDS() {
       {/* Stats */}
       <div className="tds-stats">
         {[
-          { label: 'Total Documents', value: docs.length,        color: '#6366f1', icon: '🗂️' },
-          { label: 'Active',          value: activeDocs.length,  color: '#16a34a', icon: '✅' },
-          { label: 'Archived',        value: archivedDocs.length,color: '#6b7280', icon: '📦' },
-          { label: 'Categories',      value: Object.keys(catCounts).filter(Boolean).length, color: '#0ea5e9', icon: '🏷️' },
+          { label: 'Total Documents', value: docs.length, color: '#6366f1', icon: '🗂️' },
+          { label: 'Active', value: activeDocs.length, color: '#16a34a', icon: '✅' },
+          { label: 'Archived', value: archivedDocs.length, color: '#6b7280', icon: '📦' },
+          { label: 'Categories', value: Object.keys(catCounts).filter(Boolean).length, color: '#0ea5e9', icon: '🏷️' },
         ].map((s, i) => (
           <div key={i} className="tds-stat-card" style={{ borderLeftColor: s.color }}>
             <div className="tds-stat-icon">{s.icon}</div>
@@ -235,7 +275,7 @@ export default function TDS() {
       {/* Filters */}
       <div className="tds-filters">
         <div className="tds-search">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
           <input type="text" placeholder="Search product, version, tags..."
             value={search} onChange={e => setSearch(e.target.value)} />
           {search && <button className="tds-clear" onClick={() => setSearch('')}>✕</button>}
@@ -246,9 +286,9 @@ export default function TDS() {
         </select>
         <div className="tds-status-tabs">
           {[
-            { v: 'active',   l: 'Active' },
+            { v: 'active', l: 'Active' },
             { v: 'archived', l: 'Archived' },
-            { v: '',         l: 'All' },
+            { v: '', l: 'All' },
           ].map(tab => (
             <button
               key={tab.v}
@@ -317,18 +357,8 @@ export default function TDS() {
 
                 {/* Actions */}
                 <div className="tds-card-actions">
-                  {/* <button
-                    className="tds-action-btn download"
-                    onClick={() => handleDownload(doc)}
-                    disabled={downloading[doc._id]}
-                    title="Download">
-                    {downloading[doc._id]
-                      ? <span className="tds-spin" />
-                      : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>}
-                    Download
-                  </button> */}
                   <button className="tds-action-btn view" onClick={() => setViewDoc(doc)} title="Details">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
                     Details
                   </button>
                   <div className="tds-card-more">
@@ -474,8 +504,10 @@ export default function TDS() {
             <div className="tds-modal-body">
               {/* Big file icon */}
               <div className="tds-view-hero">
-                <div className="tds-view-icon" style={{ color: getFileInfo(viewDoc.mimeType).color,
-                  background: getFileInfo(viewDoc.mimeType).color + '15' }}>
+                <div className="tds-view-icon" style={{
+                  color: getFileInfo(viewDoc.mimeType).color,
+                  background: getFileInfo(viewDoc.mimeType).color + '15'
+                }}>
                   {getFileInfo(viewDoc.mimeType).icon}
                 </div>
                 <div>
@@ -486,13 +518,13 @@ export default function TDS() {
 
               <div className="tds-view-grid">
                 {[
-                  ['Version',    viewDoc.version],
-                  ['Category',   viewDoc.category  || '—'],
-                  ['File Name',  viewDoc.fileName],
-                  ['File Size',  viewDoc.fileSizeFormatted],
-                  ['File Type',  getFileInfo(viewDoc.mimeType).label],
-                  ['Status',     viewDoc.status],
-                  ['Uploaded',   fmtDate(viewDoc.createdAt)],
+                  ['Version', viewDoc.version],
+                  ['Category', viewDoc.category || '—'],
+                  ['File Name', viewDoc.fileName],
+                  ['File Size', viewDoc.fileSizeFormatted],
+                  ['File Type', getFileInfo(viewDoc.mimeType).label],
+                  ['Status', viewDoc.status],
+                  ['Uploaded', fmtDate(viewDoc.createdAt)],
                   ['Last Updated', fmtDate(viewDoc.updatedAt)],
                 ].map(([label, val]) => (
                   <div key={label} className="tds-view-item">
@@ -518,10 +550,10 @@ export default function TDS() {
               )}
             </div>
             <div className="tds-modal-foot">
-              <button className="tds-btn-ghost" onClick={() => setViewDoc(null)}>Close</button>
+              {/* <button className="tds-btn-ghost" onClick={() => setViewDoc(null)}>Close</button> */}
               <button className="tds-btn-outline-edit" onClick={() => handleOpenEdit(viewDoc)}>✏️ Edit Info</button>
               <button className="tds-btn-primary" onClick={() => handleDownload(viewDoc)}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                 Download
               </button>
             </div>

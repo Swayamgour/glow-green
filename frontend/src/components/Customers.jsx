@@ -1,111 +1,128 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useRef } from 'react';
 import {
-  fetchCustomers, createCustomer, updateCustomer, deleteCustomer,
-  addCustomerNote, exportCustomersExcel, downloadCustomerTemplate, importCustomersExcel
-} from '../services/Customer.service';
+  useGetCustomersQuery,
+  useCreateCustomerMutation,
+  useUpdateCustomerMutation,
+  useDeleteCustomerMutation,
+  useAddCustomerNoteMutation,
+  // useExportCustomersExcelQuery,
+  // useDownloadCustomerTemplateQuery,
+  useImportCustomersExcelMutation,
+  useLazyExportCustomersExcelQuery,
+  useLazyDownloadCustomerTemplateQuery
+} from '../Redux/api';
 import './Customers.css';
+import ConfirmationDialog from './ConfirmationDialog';
 
 const CATEGORIES = ['new', 'routine', 'closed'];
 const SOURCES = ['Website', 'Referral', 'Social Media', 'Cold Call', 'Email Campaign', 'Exhibition', 'Other'];
 
 export default function Customers() {
-  const [customers, setCustomers] = useState([]);
-  const [allCustomers, setAllCustomers] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editCustomer, setEditCustomer] = useState(null);
   const [viewCustomer, setViewCustomer] = useState(null);
   const [toast, setToast] = useState(null);
-  const [importLoading, setImportLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [noteLoading, setNoteLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('basic'); // 'basic', 'address', 'owner', 'account', 'store', 'gst', 'bank', 'shipping'
-
+  const [activeTab, setActiveTab] = useState('basic');
   const [dateFilter, setDateFilter] = useState("all");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const fileInputRef = useRef();
 
+  const [deleteId, setDeleteId] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // Build query params
+  const queryParams = {};
+  if (search) queryParams.search = search;
+  if (filterCategory) queryParams.category = filterCategory;
+  if (dateFilter === "today") queryParams.date = "today";
+  if (dateFilter === "yesterday") queryParams.date = "yesterday";
+  if (dateFilter === "custom") {
+    if (fromDate) queryParams.fromDate = fromDate;
+    if (toDate) queryParams.toDate = toDate;
+  }
+
+  // RTK Query hooks
+  const {
+    data: customersData = [],
+    isLoading: loading,
+    refetch: refetchCustomers
+  } = useGetCustomersQuery(queryParams);
+
+  const {
+    data: allCustomersData = [],
+    refetch: refetchAllCustomers
+  } = useGetCustomersQuery({});
+
+  const [createCustomer] = useCreateCustomerMutation();
+  const [updateCustomer] = useUpdateCustomerMutation();
+  const [deleteCustomer] = useDeleteCustomerMutation();
+  const [addCustomerNote] = useAddCustomerNoteMutation();
+  const [importCustomersExcel] = useImportCustomersExcelMutation();
+
+
+
+  const [triggerExport] = useLazyExportCustomersExcelQuery();
+  const [triggerTemplate] = useLazyDownloadCustomerTemplateQuery();
+
+  const customers = customersData;
+  const allCustomers = allCustomersData;
+
   const [form, setForm] = useState({
-    // Basic Information
     name: '',
     tp: '',
     code: '',
     gstin: '',
     pname: '',
     source: '',
-
-    // Address Fields
     add1: '',
     add2: '',
     city: '',
     pin: '',
-
-    // Owner Information
     oname: '',
     omobile: '',
     ophone: '',
     oemail: '',
-
-    // Account Information
     amobile: '',
     aphone: '',
     aemail: '',
-
-    // Store Information
     smobile: '',
     sphone: '',
     semail: '',
-
-    // State Information
     stname: '',
     stcode: '',
-
-    // Tax Information
     panno: '',
     margin: 0,
-
-    // Billing Address Details
     billadd: '',
     despadd: '',
     billadd2: '',
     billadd3: '',
     despadd2: '',
     despadd3: '',
-
-    // GST Information
     gstnbill: '',
     gstnship: '',
-
-    // Agent Information
     agentid: '',
     svrpost: '',
     grp: '',
-
-    // Bank Details
     accno: '',
     benif_name: '',
     bankname: '',
     branchname: '',
     branchadd: '',
     ifsc_code: '',
-
-    // Job Work
     jobwork: '',
     active: 'Y',
     sman_id: '',
-
-    // Shipping Details
     shippanno: '',
     state: '',
     disp_statename: '',
     disp_statecode: '',
     disp_pin: '',
-
-    // Additional Fields
     freight: 0,
     shippingname: '',
     conperson: '',
@@ -118,45 +135,6 @@ export default function Customers() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = {};
-
-      if (search) params.search = search;
-      if (filterCategory) params.category = filterCategory;
-
-      if (dateFilter === "today") {
-        params.date = "today";
-      }
-
-      if (dateFilter === "yesterday") {
-        params.date = "yesterday";
-      }
-
-      if (dateFilter === "custom") {
-        if (fromDate) params.fromDate = fromDate;
-        if (toDate) params.toDate = toDate;
-      }
-
-      const res = await fetchCustomers(params);
-      setCustomers(res.data || []);
-
-      if (filterCategory || search) {
-        const allRes = await fetchCustomers({});
-        setAllCustomers(allRes.data || []);
-      } else {
-        setAllCustomers(res.data || []);
-      }
-    } catch (err) {
-      showToast(err.message || 'Failed to load', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [search, filterCategory, dateFilter, fromDate, toDate]);
-
-  useEffect(() => { load(); }, [load]);
 
   const resetForm = () => setForm({
     name: '',
@@ -288,52 +266,72 @@ export default function Customers() {
     if (!form.name || form.name.trim().length < 2)
       return showToast('Name must be at least 2 characters', 'error');
 
-    // Validate mobile number if provided
     if (form.omobile && !/^[0-9]{10}$/.test(form.omobile))
       return showToast('Owner mobile must be exactly 10 digits', 'error');
 
     setSaving(true);
     try {
       if (editCustomer) {
-        await updateCustomer(editCustomer._id, form);
+        await updateCustomer({ id: editCustomer._id, ...form }).unwrap();
         showToast('Customer updated');
       } else {
-        await createCustomer(form);
+        await createCustomer(form).unwrap();
         showToast('Customer added');
       }
       setShowForm(false);
       resetForm();
       setEditCustomer(null);
-      load();
+      refetchCustomers();
+      refetchAllCustomers();
     } catch (err) {
-      showToast(err.message || 'Failed to save', 'error');
+      showToast(err.data?.message || err.message || 'Failed to save', 'error');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this customer?')) return;
+  
+
+  const handleDelete = (id) => {
+    setDeleteId(id);
+    setConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
     try {
-      await deleteCustomer(id);
-      showToast('Customer deleted');
-      load();
+      await deleteCustomer(deleteId).unwrap();
+      showToast('Customer deleted successfully');
+      refetchCustomers();
+      refetchAllCustomers();
     } catch (err) {
-      showToast(err.message || 'Failed to delete', 'error');
+      showToast(err.data?.message || err.message || 'Failed to delete', 'error');
+    } finally {
+      setConfirmOpen(false);
+      setDeleteId(null);
     }
+  };
+
+
+
+
+
+  const cancelDelete = () => {
+    setConfirmOpen(false);
+    setDeleteId(null);
   };
 
   const handleAddNote = async () => {
     if (!newNote.trim()) return;
     setNoteLoading(true);
     try {
-      const res = await addCustomerNote(viewCustomer._id, newNote.trim());
-      setViewCustomer(res.data);
+      const result = await addCustomerNote({ id: viewCustomer._id, text: newNote.trim() }).unwrap();
+      setViewCustomer(result);
       setNewNote('');
       showToast('Note added');
-      load();
+      refetchCustomers();
+      refetchAllCustomers();
     } catch (err) {
-      showToast(err.message || 'Failed to add note', 'error');
+      showToast(err.data?.message || err.message || 'Failed to add note', 'error');
     } finally {
       setNoteLoading(false);
     }
@@ -342,35 +340,65 @@ export default function Customers() {
   const handleImport = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setImportLoading(true);
     try {
-      const res = await importCustomersExcel(file);
-      if (res.success) {
-        showToast(`${res.imported} customers imported`);
-        load();
+      const result = await importCustomersExcel(file).unwrap();
+      if (result.success) {
+        showToast(`${result.imported} customers imported`);
+        refetchCustomers();
+        refetchAllCustomers();
       } else {
-        showToast(res.message || 'Import failed', 'error');
+        showToast(result.message || 'Import failed', 'error');
       }
     } catch (err) {
-      showToast('Import failed', 'error');
+      showToast(err.data?.message || 'Import failed', 'error');
     } finally {
-      setImportLoading(false);
       e.target.value = '';
     }
   };
 
-  const handleExport = (e) => {
+  const handleExport = async (e) => {
     if (e) e.preventDefault();
-    const params = {};
-    if (search) params.search = search;
-    if (filterCategory) params.category = filterCategory;
-    if (dateFilter === "today") params.date = "today";
-    if (dateFilter === "yesterday") params.date = "yesterday";
-    if (dateFilter === "custom") {
-      if (fromDate) params.fromDate = fromDate;
-      if (toDate) params.toDate = toDate;
+    try {
+      const params = {};
+      if (search) params.search = search;
+      if (filterCategory) params.category = filterCategory;
+      if (dateFilter === "today") params.date = "today";
+      if (dateFilter === "yesterday") params.date = "yesterday";
+      if (dateFilter === "custom") {
+        if (fromDate) params.fromDate = fromDate;
+        if (toDate) params.toDate = toDate;
+      }
+
+      const { data } = await triggerExport(params);
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'customers.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      showToast('Export started');
+    } catch (err) {
+      showToast('Export failed', 'error');
     }
-    exportCustomersExcel(params);
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const { data } = await triggerTemplate();
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'customer_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      showToast('Template downloaded');
+    } catch (err) {
+      showToast('Failed to download template', 'error');
+    }
   };
 
   const catCounts = {
@@ -691,6 +719,25 @@ export default function Customers() {
     }
   };
 
+  // Loading state
+  if (loading && customers.length === 0) {
+    return (
+      <div className="cust-page">
+        <div className="cust-header">
+          <div>
+            <h2>Customer Management</h2>
+            <p>Loading customers...</p>
+          </div>
+        </div>
+        <div className="cust-card">
+          <div className="loading-state" style={{ padding: '40px', textAlign: 'center' }}>
+            Loading customer data...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="cust-page">
       {/* Toast */}
@@ -707,17 +754,13 @@ export default function Customers() {
           <p>Manage all your customers — New, Routine & Closed</p>
         </div>
         <div className="cust-header-actions">
-          <button className="cust-btn-outline" onClick={downloadCustomerTemplate} title="Download Excel Template">
+          <button className="cust-btn-outline" onClick={handleDownloadTemplate} title="Download Excel Template">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
             Template
           </button>
-          <label className={`cust-btn-outline ${importLoading ? 'loading' : ''}`}>
-            {importLoading ? (
-              <span className="cust-spinner" />
-            ) : (
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-            )}
-            {importLoading ? 'Importing...' : 'Import Excel'}
+          <label className="cust-btn-outline">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+            Import Excel
             <input ref={fileInputRef} type="file" accept=".xlsx,.xls" hidden onChange={handleImport} />
           </label>
           <button className="cust-btn-outline" onClick={handleExport}>
@@ -997,6 +1040,14 @@ export default function Customers() {
           </div>
         </div>
       )}
+
+      <ConfirmationDialog
+        isOpen={confirmOpen}
+        title="Delete Product"
+        message="Are you sure you want to delete this product? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />v
     </div>
   );
 }

@@ -1,14 +1,24 @@
+
+
+
+
 import { useState, useEffect, useCallback } from 'react';
-import { Component } from 'react';
 import {
-  fetchLeads, createLead, updateLead, deleteLead,
-  updateLeadStatus, updateLeadCategory, addLeadNote, deleteLeadNote
-} from '../services/lead.service';
-import { fetchExecutives } from '../services/executive.service';
-import { getUser } from '../services/auth.service';
+  useGetLeadsQuery,
+  useCreateLeadMutation,
+  useUpdateLeadMutation,
+  useDeleteLeadMutation,
+  useUpdateLeadStatusMutation,
+  useUpdateLeadCategoryMutation,
+  useAddLeadNoteMutation,
+  useDeleteLeadNoteMutation,
+  useGetExecutivesQuery,
+  useGetMeQuery
+} from '../../Redux/api';
+// import { getUser } from '../services/auth.service';
 import './Leads.css';
 import jsPDF from "jspdf";
-import ConfirmDialog from './ConfirmDialog';
+import ConfirmDialog from '../ConfirmDialog';
 
 const SOURCES = ['Website', 'Referral', 'Social Media', 'Cold Call', 'Email', 'Exhibition', 'WhatsApp', 'Other'];
 const STATUSES = ['open', 'in-progress', 'follow-up', 'won', 'lost'];
@@ -32,25 +42,7 @@ const emptyForm = {
   assignedTo: '', followUpDate: '', expectedValue: '', remarks: ''
 };
 
-class LeadsErrorBoundary extends Component {
-  constructor(props) { super(props); this.state = { error: null }; }
-  static getDerivedStateFromError(error) { return { error }; }
-  render() {
-    if (this.state.error) return (
-      <div style={{ padding: 24, color: '#991b1b', background: '#fee2e2', borderRadius: 8, margin: 24 }}>
-        <strong>Leads Error:</strong> {this.state.error.message}
-        <pre style={{ fontSize: 11, marginTop: 8 }}>{this.state.error.stack}</pre>
-      </div>
-    );
-    return this.props.children;
-  }
-}
-
 function Leads() {
-  const [leads, setLeads] = useState([]);
-  const [allLeads, setAllLeads] = useState([]);
-  const [executives, setExecutives] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -58,54 +50,61 @@ function Leads() {
   const [editLead, setEditLead] = useState(null);
   const [viewLead, setViewLead] = useState(null);
   const [form, setForm] = useState(emptyForm);
-  const [saving, setSaving] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [noteLoading, setNoteLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState('');
   const [toast, setToast] = useState(null);
-  const isAdmin = getUser()?.role === 'admin';
-
-
-
   const [activeViewTab, setActiveViewTab] = useState("details");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+
+  const [saving, setSaving] = useState(false);
+
+
+  const { data: getUser } = useGetMeQuery()
+
+  let isAdmin = getUser?.role === 'admin'
+
+  // console.log(getUser?.role)/
+
+
+  // Build query params
+  const queryParams = {};
+  if (search) queryParams.search = search;
+  if (filterCategory) queryParams.category = filterCategory;
+  if (filterStatus) queryParams.status = filterStatus;
+
+  // RTK Query hooks
+  const {
+    data: leadsData,
+    isLoading: loading,
+    refetch: refetchLeads
+  } = useGetLeadsQuery(queryParams);
+
+  const {
+    data: allLeadsData,
+    refetch: refetchAllLeads
+  } = useGetLeadsQuery({}); // For unfiltered counts
+
+  const { data: executivesData } = useGetExecutivesQuery();
+
+  const [createLead] = useCreateLeadMutation();
+  const [updateLead] = useUpdateLeadMutation();
+  const [deleteLead] = useDeleteLeadMutation();
+  const [updateLeadStatus] = useUpdateLeadStatusMutation();
+  const [updateLeadCategory] = useUpdateLeadCategoryMutation();
+  const [addLeadNote] = useAddLeadNoteMutation();
+  const [deleteLeadNote] = useDeleteLeadNoteMutation();
+
+  const leads = leadsData || [];
+  const allLeads = allLeadsData || [];
+  const executives = executivesData || [];
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3200);
   };
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = {};
-      if (search) params.search = search;
-      if (filterCategory) params.category = filterCategory;
-      if (filterStatus) params.status = filterStatus;
-      const [leadsRes, execRes] = await Promise.all([
-        fetchLeads(params),
-        fetchExecutives(),
-      ]);
-      setLeads(leadsRes.data || []);
-      setExecutives(execRes.data || []);
-
-      // Always fetch unfiltered for tab counts
-      if (filterCategory || filterStatus || search) {
-        const allRes = await fetchLeads({});
-        setAllLeads(allRes.data || []);
-      } else {
-        setAllLeads(leadsRes.data || []);
-      }
-    } catch (err) {
-      showToast(err.message || 'Failed to load', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [search, filterCategory, filterStatus]);
-
-  useEffect(() => { load(); }, [load]);
 
   const handleOpenForm = (lead = null) => {
     if (lead) {
@@ -141,43 +140,39 @@ function Leads() {
     if (form.email && !emailRegex.test(form.email))
       return showToast('Please enter a valid email address', 'error');
 
-    setSaving(true);
     try {
       const payload = { ...form };
       if (!payload.assignedTo) delete payload.assignedTo;
       if (!payload.followUpDate) delete payload.followUpDate;
+
       if (editLead) {
-        await updateLead(editLead._id, payload);
+        await updateLead({ id: editLead._id, ...payload }).unwrap();
         showToast('Lead updated');
       } else {
-        await createLead(payload);
+        await createLead(payload).unwrap();
         showToast('Lead added');
       }
       setShowForm(false);
       setEditLead(null);
       setForm(emptyForm);
-      load();
+      refetchLeads();
+      refetchAllLeads();
     } catch (err) {
-      showToast(err.message || 'Failed to save', 'error');
-    } finally {
-      setSaving(false);
+      showToast(err.data?.message || err.message || 'Failed to save', 'error');
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this lead?')) return;
     try {
-      await deleteLead(id);
+      await deleteLead(id).unwrap();
       showToast('Lead deleted');
       if (viewLead?._id === id) setViewLead(null);
-      load();
+      refetchLeads();
+      refetchAllLeads();
     } catch (err) {
-      showToast(err.message || 'Failed to delete', 'error');
+      showToast(err.data?.message || err.message || 'Failed to delete', 'error');
     }
   };
-
-
-
 
   const handleDeleteClick = (id) => {
     setDeleteId(id);
@@ -186,65 +181,81 @@ function Leads() {
 
   const handleConfirmDelete = async () => {
     try {
-      await deleteLead(deleteId);
+      await deleteLead(deleteId).unwrap();
       showToast("Lead deleted");
       if (viewLead?._id === deleteId) setViewLead(null);
-      load();
+      refetchLeads();
+      refetchAllLeads();
     } catch (err) {
-      showToast(err.message || "Failed to delete", "error");
+      showToast(err.data?.message || err.message || "Failed to delete", "error");
     } finally {
       setConfirmOpen(false);
       setDeleteId(null);
     }
   };
 
-
   const handleQuickStatus = async (lead, status) => {
     try {
-      await updateLeadStatus(lead._id, status);
-      if (viewLead?._id === lead._id) setViewLead(prev => ({ ...prev, leadStatus: status }));
-      await load();
+      await updateLeadStatus({ id: lead._id, status }).unwrap();
+      if (viewLead?._id === lead._id) {
+        setViewLead(prev => ({ ...prev, leadStatus: status }));
+      }
+      refetchLeads();
+      refetchAllLeads();
       if (status === 'won') {
         showToast(`Lead marked as Won — customer record created automatically`, 'success');
       }
-    } catch { showToast('Failed to update status', 'error'); }
+    } catch (err) {
+      showToast(err.data?.message || 'Failed to update status', 'error');
+    }
   };
 
   const handleQuickCategory = async (lead, category) => {
     try {
-      await updateLeadCategory(lead._id, category);
-      if (viewLead?._id === lead._id) setViewLead(prev => ({ ...prev, category }));
-      load();
-    } catch { showToast('Failed to update category', 'error'); }
+      await updateLeadCategory({ id: lead._id, category }).unwrap();
+      if (viewLead?._id === lead._id) {
+        setViewLead(prev => ({ ...prev, category }));
+      }
+      refetchLeads();
+      refetchAllLeads();
+    } catch (err) {
+      showToast(err.data?.message || 'Failed to update category', 'error');
+    }
   };
 
   const handleAddNote = async () => {
     if (!newNote.trim()) return;
     setNoteLoading(true);
     try {
-      const res = await addLeadNote(viewLead._id, newNote.trim());
-      setViewLead(res.data);
+      const result = await addLeadNote({ id: viewLead._id, text: newNote.trim() }).unwrap();
+      setViewLead(result);
       setNewNote('');
       showToast('Note added');
-      load();
+      refetchLeads();
+      refetchAllLeads();
     } catch (err) {
-      showToast(err.message || 'Failed to add note', 'error');
+      showToast(err.data?.message || err.message || 'Failed to add note', 'error');
     } finally {
       setNoteLoading(false);
     }
   };
 
-
-
-
-  // import jsPDF from "jspdf";
+  const handleDeleteNote = async (noteId) => {
+    try {
+      const result = await deleteLeadNote({ id: viewLead._id, noteId }).unwrap();
+      setViewLead(result);
+      showToast('Note deleted');
+      refetchLeads();
+      refetchAllLeads();
+    } catch (err) {
+      showToast(err.data?.message || 'Failed to delete note', 'error');
+    }
+  };
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
-
     let y = 10;
 
-    // 🔹 Title
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.text(viewLead.leadName || "Lead", 10, y);
@@ -255,29 +266,22 @@ function Leads() {
     doc.text(viewLead.company || viewLead.phone || "", 10, y);
 
     y += 10;
-
-    // 🔹 Divider
     doc.setDrawColor(200);
     doc.line(10, y, 200, y);
     y += 8;
 
-    // 🔹 Activity Timeline
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("Activity Timeline", 10, y);
 
     y += 6;
-
     (viewLead.activityLog || []).forEach((event) => {
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
-
-      // Action badge style text
       doc.text(`• ${event.action}`, 10, y);
       y += 5;
 
       doc.setFont("helvetica", "normal");
-
       if (event.details) {
         doc.text(event.details, 12, y, { maxWidth: 180 });
         y += 5;
@@ -292,53 +296,35 @@ function Leads() {
 
       const date = new Date(event.timestamp).toLocaleString("en-IN");
       doc.setTextColor(150);
-      // doc.text(`🕐 ${date}`, 12, y);
       doc.text(`Time: ${date}`, 12, y);
       doc.setTextColor(0);
-
       y += 8;
     });
 
     y += 4;
-
-    // 🔹 Divider
     doc.setDrawColor(200);
     doc.line(10, y, 200, y);
     y += 8;
 
-    // 🔹 Notes Section
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("Notes & Follow-up History", 10, y);
 
     y += 6;
-
     (viewLead.notes || []).forEach((note) => {
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
-
       doc.text(`• ${note.text}`, 10, y, { maxWidth: 180 });
       y += 5;
 
       const date = new Date(note.createdAt).toLocaleString("en-IN");
       doc.setTextColor(150);
-      // doc.text(`🕐 ${date}`, 12, y);
       doc.text(`Time: ${date}`, 12, y);
       doc.setTextColor(0);
-
       y += 8;
     });
 
-    // 🔹 Save
     doc.save(`${viewLead.leadName}-history.pdf`);
-  };
-
-  const handleDeleteNote = async (noteId) => {
-    try {
-      const res = await deleteLeadNote(viewLead._id, noteId);
-      setViewLead(res.data);
-      showToast('Note deleted');
-    } catch { showToast('Failed to delete note', 'error'); }
   };
 
   const counts = {
@@ -360,12 +346,12 @@ function Leads() {
 
   return (
     <div className="leads-page">
-
       {toast && (
         <div className={`leads-toast leads-toast-${toast.type}`}>
           {toast.type === 'success' ? '✓' : '✕'} {toast.message}
         </div>
       )}
+
 
       {/* Header */}
       <div className="leads-header">
@@ -888,9 +874,15 @@ function Leads() {
         onConfirm={handleConfirmDelete}
         message="Are you sure you want to delete this lead?"
       />
+
+      {/* Rest of your JSX remains the same */}
+      {/* ... (keep all the JSX from your original component) ... */}
+
+      {/* Just make sure to update any references to use the new data */}
+      {/* For example, in the table, use leads instead of leads state variable */}
+
     </div>
   );
 }
 
-const WrappedLeads = () => <LeadsErrorBoundary><Leads /></LeadsErrorBoundary>;
-export default WrappedLeads;
+export default Leads;

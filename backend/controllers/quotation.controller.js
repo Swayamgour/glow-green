@@ -7,6 +7,7 @@ const PDFDocument = require("pdfkit");
 // ✅ Puppeteer FIX (Render compatible)
 const puppeteer = require("puppeteer-core");
 const chromium = require("@sparticuz/chromium");
+const { generateQuotationPDF } = require('../utils/quotationPdfUtils');
 
 const quotationsDir = path.join(process.cwd(), 'quotations');
 if (!fs.existsSync(quotationsDir)) fs.mkdirSync(quotationsDir, { recursive: true });
@@ -66,11 +67,23 @@ const createQuotation = async (req, res) => {
     if (!body.preparedBy) body.preparedBy = null;
 
     // Recalculate amounts per item
-    const items = (body.items || []).map((item, i) => ({
-      ...item,
-      srNo: i + 1,
-      amount: Number(item.quantity || 0) * Number(item.rate || 0),
-    }));
+    const items = (body.items || []).map((item, i) => {
+      if (!item.quantity) {
+        throw new Error(`Item ${i + 1}: Quantity is required`);
+      }
+
+      if (!item.rate) {
+        throw new Error(`Item ${i + 1}: Rate is required`);
+      }
+
+      return {
+        ...item,
+        srNo: i + 1,
+        quantity: Number(item.quantity), // ✅ ensure मौजूद हो
+        rate: Number(item.rate),
+        amount: Number(item.quantity) * Number(item.rate),
+      };
+    });
 
     const totals = computeTotals(items, body.discountType, body.discountValue, body.taxType, body.taxRate);
 
@@ -104,11 +117,23 @@ const updateQuotation = async (req, res) => {
   try {
     const body = req.body;
     if (!body.preparedBy) body.preparedBy = null;
-    const items = (body.items || []).map((item, i) => ({
-      ...item,
-      srNo: i + 1,
-      amount: Number(item.quantity || 0) * Number(item.rate || 0),
-    }));
+    const items = (body.items || []).map((item, i) => {
+      if (!item.quantity) {
+        throw new Error(`Item ${i + 1}: Quantity is required`);
+      }
+
+      if (!item.rate) {
+        throw new Error(`Item ${i + 1}: Rate is required`);
+      }
+
+      return {
+        ...item,
+        srNo: i + 1,
+        quantity: Number(item.quantity), // ✅ FIX
+        rate: Number(item.rate),         // ✅ FIX
+        amount: Number(item.quantity) * Number(item.rate),
+      };
+    });
     const totals = computeTotals(items, body.discountType, body.discountValue, body.taxType, body.taxRate);
 
     const existing = await Quotation.findById(req.params.id);

@@ -5,10 +5,10 @@ export const fetchLeads = (filters = {}) => {
   return api.get(`/leads${params ? `?${params}` : ''}`);
 };
 
-export const fetchLeadById    = (id)        => api.get(`/leads/${id}`);
-export const createLead       = (body)      => api.post('/leads', body);
-export const updateLead       = (id, body)  => api.put(`/leads/${id}`, body);
-export const deleteLead       = (id)        => api.delete(`/leads/${id}`);
+export const fetchLeadById = (id) => api.get(`/leads/${id}`);
+export const createLead = (body) => api.post('/leads', body);
+export const updateLead = (id, body) => api.put(`/leads/${id}`, body);
+export const deleteLead = (id) => api.delete(`/leads/${id}`);
 
 // ✅ Unified status update — sends both keys to handle backend inconsistencies
 export const updateLeadStatus = (id, status) =>
@@ -22,5 +22,5 @@ export const updateLeadCategory = (id, category) =>
 export const updateLeadField = (id, field, value) =>
   api.patch(`/leads/${id}`, { [field]: value });
 
-export const addLeadNote    = (id, text)   => api.post(`/leads/${id}/notes`, { text });
+export const addLeadNote = (id, text) => api.post(`/leads/${id}/notes`, { text });
 export const deleteLeadNote = (id, noteId) => api.delete(`/leads/${id}/notes/${noteId}`);

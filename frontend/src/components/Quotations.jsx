@@ -1,12 +1,16 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useRef } from 'react';
 import {
-  fetchQuotations, createQuotation, updateQuotation,
-  deleteQuotation, updateQuotationStatus
-} from '../services/quotation.service';
-import { fetchExecutives } from '../services/executive.service';
+  useGetQuotationsQuery,
+  useCreateQuotationMutation,
+  useUpdateQuotationMutation,
+  useDeleteQuotationMutation,
+  useUpdateQuotationStatusMutation,
+  useGetExecutivesQuery
+} from '../Redux/api';
 import html2pdf from 'html2pdf.js';
 import './Quotations.css';
 import QuotationPdfs from './QuotationPdfs';
+import ConfirmationDialog from './ConfirmationDialog';
 
 const SERIES_OPTIONS = ['GG', 'QT', 'INV', 'EST'];
 const UNITS = ['pcs', 'kg', 'g', 'litre', 'ml', 'box', 'bag', 'metre', 'set', 'other'];
@@ -40,9 +44,6 @@ const emptyForm = {
 };
 
 export default function Quotations() {
-  const [quotations, setQuotations] = useState([]);
-  const [executives, setExecutives] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [view, setView] = useState('list');
@@ -50,31 +51,41 @@ export default function Quotations() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
-  const [pdfLoading, setPdfLoading] = useState({});
   const [pdfPreview, setPdfPreview] = useState({ show: false, quotation: null });
   const [loadingPdf, setLoadingPdf] = useState(false);
 
+
+  const [deleteId, setDeleteId] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   const pdfContentRef = useRef();
+
+  // Build query params
+  const queryParams = {};
+  if (search) queryParams.search = search;
+  if (filterStatus) queryParams.status = filterStatus;
+
+  // RTK Query hooks
+  const {
+    data: quotationsData = [],
+    isLoading: loading,
+    refetch: refetchQuotations
+  } = useGetQuotationsQuery(queryParams);
+
+  const { data: executivesData = [] } = useGetExecutivesQuery();
+
+  const [createQuotation] = useCreateQuotationMutation();
+  const [updateQuotation] = useUpdateQuotationMutation();
+  const [deleteQuotation] = useDeleteQuotationMutation();
+  const [updateQuotationStatus] = useUpdateQuotationStatusMutation();
+
+  const quotations = quotationsData;
+  const executives = executivesData;
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3200);
   };
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = {};
-      if (search) params.search = search;
-      if (filterStatus) params.status = filterStatus;
-      const [qRes, exRes] = await Promise.all([fetchQuotations(params), fetchExecutives()]);
-      setQuotations(qRes.data || []);
-      setExecutives(exRes.data || []);
-    } catch (err) { showToast(err.message, 'error'); }
-    finally { setLoading(false); }
-  }, [search, filterStatus]);
-
-  useEffect(() => { load(); }, [load]);
 
   const calcTotals = (items, discountType, discountValue, taxType, taxRate) => {
     const subtotal = items.reduce((s, i) => s + (Number(i.quantity) || 0) * (Number(i.rate) || 0), 0);
@@ -138,41 +149,72 @@ export default function Quotations() {
     setSaving(true);
     try {
       if (editId) {
-        await updateQuotation(editId, form);
+        await updateQuotation({ id: editId, ...form }).unwrap();
         showToast('Quotation updated');
       } else {
-        await createQuotation(form);
+        await createQuotation(form).unwrap();
         showToast('Quotation created');
       }
       setView('list');
       setEditId(null);
-      load();
-    } catch (err) { showToast(err.message || 'Failed to save', 'error'); }
-    finally { setSaving(false); }
+      refetchQuotations();
+    } catch (err) {
+      showToast(err.data?.message || err.message || 'Failed to save', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this quotation?')) return;
+  // const handleDelete = async (id) => {
+  //   if (!window.confirm('Delete this quotation?')) return;
+  //   try {
+  //     await deleteQuotation(id).unwrap();
+  //     showToast('Deleted');
+  //     refetchQuotations();
+  //   } catch (err) {
+  //     showToast(err.data?.message || err.message, 'error');
+  //   }
+  // };
+
+  const handleDelete = (id) => {
+    setDeleteId(id);
+    setConfirmOpen(true);
+  };
+
+
+  const confirmDelete = async () => {
     try {
-      await deleteQuotation(id);
-      showToast('Deleted');
-      load();
-    } catch (err) { showToast(err.message, 'error'); }
+      await deleteQuotation(deleteId).unwrap();
+      showToast('Quotation deleted');
+      refetchQuotations();
+    } catch (err) {
+      showToast(err.data?.message || err.message, 'error');
+    } finally {
+      setConfirmOpen(false);
+      setDeleteId(null);
+    }
+  };
+
+
+  const cancelDelete = () => {
+    setConfirmOpen(false);
+    setDeleteId(null);
   };
 
   const handleQuickStatus = async (id, status) => {
     try {
-      await updateQuotationStatus(id, status);
+      await updateQuotationStatus({ id, status }).unwrap();
       showToast('Status updated');
-      load();
-    } catch { showToast('Failed', 'error'); }
+      refetchQuotations();
+    } catch (err) {
+      showToast('Failed', 'error');
+    }
   };
 
-  // PDF Download Function - Frontend only
+  // PDF Download Function
   const generatePDF = async (quotation) => {
     try {
       setLoadingPdf(true);
-
       const element = pdfContentRef.current;
       if (!element) return;
 
@@ -185,16 +227,15 @@ export default function Quotations() {
       };
 
       await html2pdf().set(opt).from(element).save();
-
       showToast('PDF downloaded successfully');
-
     } catch (err) {
       console.error(err);
       showToast('PDF generation failed', 'error');
     } finally {
-      setLoadingPdf(false); // 🔥 always false at end
+      setLoadingPdf(false);
     }
   };
+
   // Show Preview
   const handleViewPDF = (quotation) => {
     setPdfPreview({ show: true, quotation });
@@ -210,8 +251,24 @@ export default function Quotations() {
     accepted: quotations.filter(q => q.status === 'accepted').length,
   };
 
-  // PDF Content Component
-
+  // Loading state
+  if (loading && quotations.length === 0 && view === 'list') {
+    return (
+      <div className="qt-page">
+        <div className="qt-header">
+          <div>
+            <h2>Quotation Management</h2>
+            <p>Loading quotations...</p>
+          </div>
+        </div>
+        <div className="qt-card">
+          <div className="loading-state" style={{ padding: '40px', textAlign: 'center' }}>
+            Loading quotation data...
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ════════════════════════════════════════════════════════════
   // FORM VIEW
@@ -529,7 +586,7 @@ export default function Quotations() {
                     <th>Customer</th>
                     <th>Date</th>
                     <th>Valid Till</th>
-                    <th>Items</th>
+                    {/* <th>Items</th> */}
                     <th>Grand Total</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -546,7 +603,8 @@ export default function Quotations() {
                       </td>
                       <td>{fmtDate(q.date)}</td>
                       <td>{fmtDate(q.validTill)}</td>
-                      <td className="qt-items-count">{q.items?.length || 0} items</td>
+                      {/* {console.log(q.items?.quantity)}
+                      <td className="qt-items-count">{q.items?.length || 0} items</td> */}
                       <td className="qt-total">{fmt(q.grandTotal)}</td>
                       <td>
                         <select
@@ -603,7 +661,6 @@ export default function Quotations() {
             </div>
 
             <div className="pdf-preview-footer">
-
               <button className="pdf-preview-btn primary" onClick={() => generatePDF(pdfPreview.quotation)}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -614,8 +671,18 @@ export default function Quotations() {
               </button>
             </div>
           </div>
+
+
         </div>
       )}
+
+      <ConfirmationDialog
+        isOpen={confirmOpen}
+        title="Delete Quotation"
+        message="Are you sure you want to delete this quotation? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
     </>
   );
 }

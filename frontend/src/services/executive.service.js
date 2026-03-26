@@ -3,6 +3,7 @@ import api from './api';
 
 // Fetch all executives
 export const fetchExecutives = () => api.get('/executives');
+export const fetchExecutivesPasswordById = () => api.get(`/executives/${id}/view-password`);
 
 // Fetch one executive by ID
 export const fetchExecutiveById = (id) => api.get(`/executives/${id}`);

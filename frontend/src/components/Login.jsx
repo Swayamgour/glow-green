@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
-import { loginUser } from '../services/auth.service';
+// import { useLoginMutation } from '../services/api';
 import './Login.css';
+import { useLoginMutation } from '../Redux/api';
 
 function Login({ onLogin }) {
-  const [email,    setEmail]    = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error,    setError]    = useState('');
+  const [error, setError] = useState('');
   const [logoutMessage, setLogoutMessage] = useState('');
-  const [loading,  setLoading]  = useState(false);
+
+  // RTK Query hook
+  const [login, { isLoading }] = useLoginMutation();
 
   useEffect(() => {
     const logoutMsg = sessionStorage.getItem('gg_logout_msg');
@@ -22,23 +25,30 @@ function Login({ onLogin }) {
     e.preventDefault();
     setError('');
 
-    if (!email || !password) { setError('Please fill in all fields'); return; }
+    if (!email || !password) {
+      setError('Please fill in all fields');
+      return;
+    }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) { setError('Please enter a valid email address'); return; }
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
 
-    setLoading(true);
     try {
-      const data = await loginUser(email, password);
-      console.log('Login response:', JSON.stringify(data));
-     const userName = data.name || 'User';
-const userRole = data.role === 'admin' ? 'Admin' : 'Sales Executive';
+      // Using RTK Query mutation
+      const result = await login({ email, password }).unwrap();
+
+      // result already contains the user data from transformResponse
+      const userName = result.name || 'User';
+      const userRole = result.role === 'admin' ? 'Admin' : 'Sales Executive';
+
       sessionStorage.setItem('gg_login_msg', `Welcome back, ${userName}! Logged in as ${userRole}`);
       window.location.href = '/';
     } catch (err) {
+      // Error message from transformResponse or network error
       setError(err.message || 'Login failed. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -65,7 +75,11 @@ const userRole = data.role === 'admin' ? 'Admin' : 'Sales Executive';
             alignItems: 'center',
             gap: 8,
           }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
             {logoutMessage}
           </div>
         )}
@@ -76,26 +90,32 @@ const userRole = data.role === 'admin' ? 'Admin' : 'Sales Executive';
           <div className="form-group">
             <label htmlFor="email">Email Address</label>
             <input
-              type="email" id="email" value={email}
+              type="email"
+              id="email"
+              value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
-              autoComplete="email" disabled={loading}
+              autoComplete="email"
+              disabled={isLoading}
             />
           </div>
 
           <div className="form-group">
             <label htmlFor="password">Password</label>
             <input
-              type="password" id="password" value={password}
+              type="password"
+              id="password"
+              value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
-              autoComplete="current-password" disabled={loading}
+              autoComplete="current-password"
+              disabled={isLoading}
             />
           </div>
 
-          <button type="submit" className="login-button" disabled={loading}>
-            {loading ? <span className="login-spinner" /> : null}
-            {loading ? 'Signing in...' : 'Sign In'}
+          <button type="submit" className="login-button" disabled={isLoading}>
+            {isLoading ? <span className="login-spinner" /> : null}
+            {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
