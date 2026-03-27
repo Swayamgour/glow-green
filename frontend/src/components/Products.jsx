@@ -970,7 +970,7 @@ export default function Products() {
                     setShowForm(false);
                   }
                 }}>
-                {activeTab === 'details' && form.type ? 'Back' : 'Cancel'}
+                {activeTab === 'details' && form.type ? 'Back' : ''}
               </button>
 
               {activeTab === 'basic' ? (

@@ -218,6 +218,7 @@ function Leads() {
       }
       refetchLeads();
       refetchAllLeads();
+      showToast("Lead Updated")
     } catch (err) {
       showToast(err.data?.message || 'Failed to update category', 'error');
     }

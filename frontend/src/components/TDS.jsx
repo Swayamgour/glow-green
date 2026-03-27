@@ -483,7 +483,7 @@ export default function TDS() {
             </div>
 
             <div className="tds-modal-foot">
-              <button className="tds-btn-ghost" onClick={() => setShowUpload(false)}>Cancel</button>
+              {/* <button className="tds-btn-ghost" onClick={() => setShowUpload(false)}>Cancel</button> */}
               <button className="tds-btn-primary" onClick={handleSave} disabled={saving}>
                 {saving && <span className="tds-spin" />}
                 {saving ? 'Saving...' : editDoc ? '💾 Update Info' : '⬆️ Upload Document'}

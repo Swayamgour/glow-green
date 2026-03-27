@@ -937,7 +937,7 @@ export default function Customers() {
             </div>
 
             <div className="cust-modal-footer">
-              <button className="cust-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
+              {/* <button className="cust-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button> */}
               <button className="cust-btn-primary" onClick={handleSave} disabled={saving}>
                 {saving ? <span className="cust-spinner" /> : null}
                 {saving ? 'Saving...' : editCustomer ? 'Update Customer' : 'Add Customer'}
@@ -1032,7 +1032,7 @@ export default function Customers() {
             </div>
 
             <div className="cust-modal-footer">
-              <button className="cust-btn-ghost" onClick={() => setViewCustomer(null)}>Close</button>
+              {/* <button className="cust-btn-ghost" onClick={() => setViewCustomer(null)}>Close</button> */}
               <button className="cust-btn-primary" onClick={() => { setViewCustomer(null); handleOpenForm(viewCustomer); }}>
                 Edit Customer
               </button>
