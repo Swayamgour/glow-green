@@ -1,16 +1,24 @@
+
+
 import { useEffect, useState } from 'react';
-// import { useLoginMutation } from '../services/api';
 import './Login.css';
 import { useLoginMutation } from '../Redux/api';
+import { useNavigate, Navigate } from 'react-router-dom';
 
-function Login({ onLogin }) {
+function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [logoutMessage, setLogoutMessage] = useState('');
 
-  // RTK Query hook
   const [login, { isLoading }] = useLoginMutation();
+  const navigate = useNavigate();
+
+  // ✅ Already logged in → redirect
+  const token = localStorage.getItem("token");
+  const user = JSON.parse(localStorage.getItem("user"));
+
+
 
   useEffect(() => {
     const logoutMsg = sessionStorage.getItem('gg_logout_msg');
@@ -26,29 +34,20 @@ function Login({ onLogin }) {
     setError('');
 
     if (!email || !password) {
-      setError('Please fill in all fields');
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address');
-      return;
+      return setError('Please fill in all fields');
     }
 
     try {
-      // Using RTK Query mutation
       const result = await login({ email, password }).unwrap();
 
-      // result already contains the user data from transformResponse
-      const userName = result.name || 'User';
-      const userRole = result.role === 'admin' ? 'Admin' : 'Sales Executive';
+      // ✅ Store auth data
+      localStorage.setItem("token", result.token);
+      localStorage.setItem("user", JSON.stringify(result));
 
-      sessionStorage.setItem('gg_login_msg', `Welcome back, ${userName}! Logged in as ${userRole}`);
-      window.location.href = '/';
+      navigate("/Dashboard"); // ✅ direct dashboard
+
     } catch (err) {
-      // Error message from transformResponse or network error
-      setError(err.message || 'Login failed. Please try again.');
+      setError(err.message || 'Login failed');
     }
   };
 

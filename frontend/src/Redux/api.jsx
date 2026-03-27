@@ -2,15 +2,24 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 // Base URLs from your original services
-const BASE_URL = import.meta.env.VITE_API_URL || "https://glowgreen-backend.onrender.com/api";
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "https://glowgreen-backend.onrender.com";
+
+
+
+
+
+// 
 
 // Helper to get token
 const getToken = () => localStorage.getItem('gg_token');
+// let url = ''
+
+// const BASE_URL = VITE_API_URL || "https://glowgreen-backend.onrender.com/api";
 
 // Base query with authentication
 const baseQuery = fetchBaseQuery({
-    baseUrl: BASE_URL,
+
+    // baseUrl: 'http://localhost:5000',
+    baseUrl: 'https://glow-green.onrender.com',
     prepareHeaders: (headers) => {
         const token = getToken();
 

@@ -322,30 +322,7 @@ function LeadTimeLine() {
                             })()}
                         </div>
 
-                        <div style={{
-                            padding: '14px 24px',
-                            borderTop: '1px solid #f0f2f5',
-                            display: 'flex',
-                            justifyContent: 'flex-end',
-                            flexShrink: 0
-                        }}>
-                            <button
-                                className="btn-reset"
-                                onClick={() => setViewTimelineLead(null)}
-                                style={{
-                                    padding: '8px 20px',
-                                    background: '#f3f4f6',
-                                    border: 'none',
-                                    borderRadius: 8,
-                                    cursor: 'pointer',
-                                    fontSize: 13,
-                                    fontWeight: 500,
-                                    color: '#374151'
-                                }}
-                            >
-                                Close
-                            </button>
-                        </div>
+                       
                     </div>
                 </div>
             )}

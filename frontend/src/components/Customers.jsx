@@ -1047,7 +1047,7 @@ export default function Customers() {
         message="Are you sure you want to delete this product? This action cannot be undone."
         onConfirm={confirmDelete}
         onCancel={cancelDelete}
-      />v
+      />
     </div>
   );
 }

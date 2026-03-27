@@ -1,12 +1,10 @@
-// src/components/Dashboard/Overview.jsx
-import React from 'react';
-// import { useGetLeadsQuery, useGetExecutivesQuery } from '../../services/api';
+
 import {
     LayoutDashboard,
     TrendingUp,
     Users,
     CheckCircle,
-   
+
 } from 'lucide-react';
 import '../components/Dashboard.css';
 import { useGetLeadsQuery, useGetExecutivesQuery } from '../Redux/api';
@@ -105,8 +103,15 @@ const Overview = ({ setActiveTab }) => {
                     </div>
                     <div className="table-container">
                         <table className="data-table">
-                            <thead><tr>
-                                <th>Name</th><th>Phone</th><th>Source</th><th>Status</th><th>Value</th></tr> </thead>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Phone</th>
+                                    <th>Source</th>
+                                    <th>Status</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
                             <tbody>
                                 {leads.slice(0, 5).map(lead => (
                                     <tr key={lead._id}>

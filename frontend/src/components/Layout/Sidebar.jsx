@@ -13,24 +13,19 @@ import {
     Clock,
     TrendingUp,
     LogOut,
-    ChevronRight,
     ChevronDown,
     BookOpen,
     FileSpreadsheet,
     BarChart3,
-    Settings,
-    LifeBuoy
 } from "lucide-react";
 import "./MainLayout.css";
 
-
-const Sidebar = ({ isOpen, mobileOpen, onClose, currentUser, onLogout }) => {
+const Sidebar = ({ isOpen, currentUser, onLogout }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [leadsMenuOpen, setLeadsMenuOpen] = useState(false);
 
     const isAdmin = currentUser?.role === 'admin';
-    let sidebarVisible = isOpen || mobileOpen;
 
     const leadSubItems = [
         { id: 'leads', label: 'All Leads', icon: UsersRound, path: '/Lead' },
@@ -49,7 +44,6 @@ const Sidebar = ({ isOpen, mobileOpen, onClose, currentUser, onLogout }) => {
         { id: 'quotations', label: 'Quotations', icon: FileText, path: '/Quotations' },
         { id: 'tds', label: 'TDS Documents', icon: FileBarChart, path: '/TDS' },
         ...(isAdmin ? [{ id: 'reports', label: 'Reports', icon: BarChart3, path: '/Reports' }] : []),
-        // { id: 'mom', label: 'Minutes of Meeting', icon: BookOpen, path: '/dashboard/mom' },
     ];
 
     const isActivePath = (path) => {
@@ -64,7 +58,6 @@ const Sidebar = ({ isOpen, mobileOpen, onClose, currentUser, onLogout }) => {
     const handleNavigate = (path) => {
         if (path) {
             navigate(path);
-            if (mobileOpen) onClose();
         }
     };
 
@@ -72,33 +65,28 @@ const Sidebar = ({ isOpen, mobileOpen, onClose, currentUser, onLogout }) => {
         setLeadsMenuOpen(!leadsMenuOpen);
     };
 
-    // if (!sidebarVisible) return null;
-    sidebarVisible = isOpen || mobileOpen;
+    if (!isOpen) return null;
 
     return (
-        //   return (
-        <aside className={`sidebar ${!isOpen ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
-            
+        <aside className="sidebar">
             {/* Logo Section */}
             <div className="sidebar-logo">
                 <div className="logo-icon">🌿</div>
-                {isOpen && <span className="logo-text">Glow Green</span>}
+                <span className="logo-text">Glow Green</span>
             </div>
 
             {/* User Profile Section */}
-            {isOpen && (
-                <div className="sidebar-user">
-                    <div className="user-avatar">
-                        {(currentUser?.name || 'U')[0].toUpperCase()}
-                    </div>
-                    <div className="user-info">
-                        <span className="user-name">{currentUser?.name || 'User'}</span>
-                        <span className="user-role">
-                            {currentUser?.role === 'admin' ? 'Administrator' : 'Sales Executive'}
-                        </span>
-                    </div>
+            <div className="sidebar-user">
+                <div className="user-avatar">
+                    {(currentUser?.name || 'U')[0].toUpperCase()}
                 </div>
-            )}
+                <div className="user-info">
+                    <span className="user-name">{currentUser?.name || 'User'}</span>
+                    <span className="user-role">
+                        {currentUser?.role === 'admin' ? 'Administrator' : 'Sales Executive'}
+                    </span>
+                </div>
+            </div>
 
             {/* Navigation */}
             <nav className="sidebar-nav">
@@ -116,18 +104,14 @@ const Sidebar = ({ isOpen, mobileOpen, onClose, currentUser, onLogout }) => {
                                     onClick={handleLeadsToggle}
                                 >
                                     <Icon size={20} className="nav-icon" />
-                                    {isOpen && (
-                                        <>
-                                            <span className="nav-label">{item.label}</span>
-                                            <ChevronDown
-                                                size={16}
-                                                className={`nav-chevron ${leadsMenuOpen ? 'open' : ''}`}
-                                            />
-                                        </>
-                                    )}
+                                    <span className="nav-label">{item.label}</span>
+                                    <ChevronDown
+                                        size={16}
+                                        className={`nav-chevron ${leadsMenuOpen ? 'open' : ''}`}
+                                    />
                                 </button>
 
-                                {isOpen && leadsMenuOpen && (
+                                {leadsMenuOpen && (
                                     <div className="submenu">
                                         {leadSubItems.map(subItem => {
                                             const SubIcon = subItem.icon;
@@ -155,21 +139,19 @@ const Sidebar = ({ isOpen, mobileOpen, onClose, currentUser, onLogout }) => {
                             onClick={() => handleNavigate(item.path)}
                         >
                             <Icon size={20} className="nav-icon" />
-                            {isOpen && <span className="nav-label">{item.label}</span>}
+                            <span className="nav-label">{item.label}</span>
                         </button>
                     );
                 })}
             </nav>
 
             {/* Footer Section */}
-            {isOpen && (
-                <div className="sidebar-footer">
-                    <button className="logout-btn" onClick={onLogout}>
-                        <LogOut size={18} />
-                        <span>Logout</span>
-                    </button>
-                </div>
-            )}
+            <div className="sidebar-footer">
+                <button className="logout-btn" onClick={onLogout}>
+                    <LogOut size={18} />
+                    <span>Logout</span>
+                </button>
+            </div>
         </aside>
     );
 };

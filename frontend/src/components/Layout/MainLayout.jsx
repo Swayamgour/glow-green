@@ -1,9 +1,9 @@
 // src/components/Layout/MainLayout.jsx
 import React, { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-// import { useGetMeQuery } from "../../services/api";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
+import MobileDrawer from "../MobileDrawer";
 import "./MainLayout.css";
 import { useGetMeQuery } from "../../Redux/api";
 
@@ -13,7 +13,7 @@ const MainLayout = () => {
     const { data: currentUser } = useGetMeQuery();
 
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
 
     // Handle responsive sidebar
@@ -31,20 +31,30 @@ const MainLayout = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Close mobile menu on route change
+    // Close mobile drawer on route change
     useEffect(() => {
-        setMobileMenuOpen(false);
+        setMobileDrawerOpen(false);
     }, [location]);
 
+    // const handleLogout = () => {
+    //     localStorage.removeItem('gg_token');
+    //     localStorage.removeItem('gg_user');
+    //     navigate('/login');
+    // };
+
+
     const handleLogout = () => {
-        localStorage.removeItem('gg_token');
-        localStorage.removeItem('gg_user');
-        navigate('/login');
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        sessionStorage.setItem("gg_logout_msg", "Logged out successfully");
+
+        window.location.href = "/login"; // safe reset
     };
 
     const toggleSidebar = () => {
         if (window.innerWidth <= 768) {
-            setMobileMenuOpen(!mobileMenuOpen);
+            setMobileDrawerOpen(!mobileDrawerOpen);
         } else {
             setSidebarOpen(!sidebarOpen);
         }
@@ -52,27 +62,20 @@ const MainLayout = () => {
 
     return (
         <div className="main-layout">
-            {/* Sidebar */}
-            {/* <Sidebar
-                isOpen={sidebarOpen}
-                mobileOpen={mobileMenuOpen}
-                onClose={() => setMobileMenuOpen(false)}
-                currentUser={currentUser}
-                onLogout={handleLogout}
-            /> */}
-
+            {/* Desktop Sidebar */}
             <Sidebar
                 isOpen={sidebarOpen}
-                mobileOpen={mobileMenuOpen}  // This is correct
-                onClose={() => setMobileMenuOpen(false)}
                 currentUser={currentUser}
                 onLogout={handleLogout}
             />
 
-            {/* Overlay for mobile */}
-            {mobileMenuOpen && (
-                <div className="sidebar-overlay" onClick={() => setMobileMenuOpen(false)} />
-            )}
+            {/* Mobile Drawer - Using MUI Drawer for phone devices */}
+            <MobileDrawer
+                open={mobileDrawerOpen}
+                onClose={() => setMobileDrawerOpen(false)}
+                currentUser={currentUser}
+                onLogout={handleLogout}
+            />
 
             {/* Main Content Area */}
             <div className={`main-content ${!sidebarOpen ? 'sidebar-collapsed' : ''}`}>
