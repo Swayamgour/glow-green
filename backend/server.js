@@ -54,8 +54,8 @@ app.use('/api/tds', require('./routes/tds.routes'));
 app.use('/api/reports', require('./routes/reports.routes'));
 
 // ─── Health check ─────────────────────────────────────────────────────────────
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'CRM API is running' });
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: ' Glow Green CRM API is running' });
 });
 
 app.post('/api/test-exec', require('./middleware/auth.middleware').protect, async (req, res) => {

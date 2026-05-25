@@ -12,6 +12,9 @@ const MainLayout = () => {
     const location = useLocation();
     const { data: currentUser } = useGetMeQuery();
 
+    console.log('main')
+
+
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
