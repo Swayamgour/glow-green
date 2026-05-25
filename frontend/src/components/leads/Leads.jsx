@@ -2,7 +2,7 @@
 
 
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   useGetLeadsQuery,
   useCreateLeadMutation,
@@ -13,7 +13,15 @@ import {
   useAddLeadNoteMutation,
   useDeleteLeadNoteMutation,
   useGetExecutivesQuery,
-  useGetMeQuery
+  useGetMeQuery,
+
+  // useImportLeadsExcelMutation,
+  // useExportLeadsExcelMutation,
+  // useDownloadLeadTemplateMutation,
+
+  useExportLeadsExcelMutation,
+  useDownloadLeadTemplateMutation,
+  useImportLeadsExcelMutation,
 } from '../../Redux/api';
 // import { getUser } from '../services/auth.service';
 import './Leads.css';
@@ -60,6 +68,7 @@ function Leads() {
   const [deleteId, setDeleteId] = useState(null);
 
   const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef();
 
 
   const { data: getUser } = useGetMeQuery()
@@ -97,6 +106,12 @@ function Leads() {
   const [addLeadNote] = useAddLeadNoteMutation();
   const [deleteLeadNote] = useDeleteLeadNoteMutation();
 
+  const [importLeadsExcel] = useImportLeadsExcelMutation();
+
+  const [triggerExport] = useExportLeadsExcelMutation();
+
+  const [triggerTemplate] = useDownloadLeadTemplateMutation();
+
   const leads = leadsData || [];
   const allLeads = allLeadsData || [];
   const executives = executivesData || [];
@@ -104,6 +119,109 @@ function Leads() {
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3200);
+  };
+
+
+  const handleImport = async (e) => {
+
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    try {
+
+      const formData = new FormData();
+
+      formData.append('file', file);
+
+      const result = await importLeadsExcel(formData).unwrap();
+
+      if (result.success) {
+
+        showToast(`${result.imported} leads imported`);
+
+        refetchLeads();
+
+        refetchAllLeads();
+
+      } else {
+
+        showToast(result.message || 'Import failed', 'error');
+
+      }
+
+    } catch (err) {
+
+      showToast(err.data?.message || 'Import failed', 'error');
+
+    } finally {
+
+      e.target.value = '';
+
+    }
+  };
+
+  const handleExport = async () => {
+
+    try {
+
+      const { data } = await triggerExport();
+
+      const url = window.URL.createObjectURL(data);
+
+      const link = document.createElement('a');
+
+      link.href = url;
+
+      link.setAttribute('download', 'leads.xlsx');
+
+      document.body.appendChild(link);
+
+      link.click();
+
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+
+      showToast('Export started');
+
+    } catch (err) {
+
+      showToast('Export failed', 'error');
+
+    }
+  };
+
+
+  const handleDownloadTemplate = async () => {
+
+    try {
+
+      const { data } = await triggerTemplate();
+
+      const url = window.URL.createObjectURL(data);
+
+      const link = document.createElement('a');
+
+      link.href = url;
+
+      link.setAttribute('download', 'lead_template.xlsx');
+
+      document.body.appendChild(link);
+
+      link.click();
+
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+
+      showToast('Template downloaded');
+
+    } catch (err) {
+
+      showToast('Failed to download template', 'error');
+
+    }
   };
 
   const handleOpenForm = (lead = null) => {
@@ -254,78 +372,206 @@ function Leads() {
   };
 
   const handleDownloadPDF = () => {
+
     const doc = new jsPDF();
+
     let y = 10;
 
+    const pageHeight = doc.internal.pageSize.height;
+
+    // Auto Page Break
+    const checkPageBreak = (space = 20) => {
+
+      if (y + space > pageHeight - 10) {
+
+        doc.addPage();
+
+        y = 10;
+
+      }
+
+    };
+
+    // Title
     doc.setFontSize(16);
+
     doc.setFont("helvetica", "bold");
+
     doc.text(viewLead.leadName || "Lead", 10, y);
 
     y += 8;
+
     doc.setFontSize(10);
+
     doc.setFont("helvetica", "normal");
+
     doc.text(viewLead.company || viewLead.phone || "", 10, y);
 
     y += 10;
-    doc.setDrawColor(200);
-    doc.line(10, y, 200, y);
+
+    // Lead Details
+    doc.setFontSize(12);
+
+    doc.setFont("helvetica", "bold");
+
+    doc.text("Lead Details", 10, y);
+
     y += 8;
 
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Activity Timeline", 10, y);
+    doc.setFontSize(11);
 
-    y += 6;
-    (viewLead.activityLog || []).forEach((event) => {
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.text(`• ${event.action}`, 10, y);
-      y += 5;
+    doc.setFont("helvetica", "normal");
 
-      doc.setFont("helvetica", "normal");
-      if (event.details) {
-        doc.text(event.details, 12, y, { maxWidth: 180 });
-        y += 5;
-      }
+    const details = [
+      `Phone: ${viewLead.phone || '-'}`,
+      `Email: ${viewLead.email || '-'}`,
+      `Status: ${viewLead.leadStatus || '-'}`,
+      `Category: ${viewLead.category || '-'}`,
+      `Assigned To: ${viewLead.assignedTo?.name || '-'}`,
+      `Follow-Up: ${viewLead.followUpDate
+        ? new Date(viewLead.followUpDate).toLocaleDateString("en-IN")
+        : '-'
+      }`,
+    ];
 
-      if (event.changedBy) {
-        doc.setTextColor(120);
-        doc.text(`by ${event.changedBy}`, 12, y);
-        doc.setTextColor(0);
-        y += 5;
-      }
+    details.forEach((item) => {
 
-      const date = new Date(event.timestamp).toLocaleString("en-IN");
-      doc.setTextColor(150);
-      doc.text(`Time: ${date}`, 12, y);
-      doc.setTextColor(0);
-      y += 8;
+      checkPageBreak();
+
+      doc.text(item, 10, y);
+
+      y += 6;
+
     });
 
     y += 4;
+
     doc.setDrawColor(200);
+
     doc.line(10, y, 200, y);
+
     y += 8;
 
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Notes & Follow-up History", 10, y);
+    // Activity Timeline
+    checkPageBreak();
 
-    y += 6;
-    (viewLead.notes || []).forEach((note) => {
+    doc.setFontSize(12);
+
+    doc.setFont("helvetica", "bold");
+
+    doc.text("Lead History & Activity Timeline", 10, y);
+
+    y += 8;
+
+    (viewLead.activityLog || []).forEach((event) => {
+
+      checkPageBreak(30);
+
       doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`• ${note.text}`, 10, y, { maxWidth: 180 });
+
+      doc.setFont("helvetica", "bold");
+
+      doc.text(`• ${event.action}`, 10, y);
+
       y += 5;
 
-      const date = new Date(note.createdAt).toLocaleString("en-IN");
+      doc.setFont("helvetica", "normal");
+
+      if (event.details) {
+
+        const splitText = doc.splitTextToSize(
+          event.details,
+          180
+        );
+
+        doc.text(splitText, 12, y);
+
+        y += splitText.length * 5;
+
+      }
+
+      if (event.changedBy) {
+
+        doc.setTextColor(120);
+
+        doc.text(`by ${event.changedBy}`, 12, y);
+
+        doc.setTextColor(0);
+
+        y += 5;
+
+      }
+
+      const date = new Date(event.timestamp)
+        .toLocaleString("en-IN");
+
       doc.setTextColor(150);
+
       doc.text(`Time: ${date}`, 12, y);
+
       doc.setTextColor(0);
+
       y += 8;
+
     });
 
-    doc.save(`${viewLead.leadName}-history.pdf`);
+    y += 4;
+
+    checkPageBreak();
+
+    doc.setDrawColor(200);
+
+    doc.line(10, y, 200, y);
+
+    y += 8;
+
+    // Notes
+    doc.setFontSize(12);
+
+    doc.setFont("helvetica", "bold");
+
+    doc.text(
+      "Follow-up Notes & Communication History",
+      10,
+      y
+    );
+
+    y += 8;
+
+    (viewLead.notes || []).forEach((note) => {
+
+      checkPageBreak(25);
+
+      doc.setFontSize(10);
+
+      doc.setFont("helvetica", "normal");
+
+      const splitText = doc.splitTextToSize(
+        `• ${note.text}`,
+        180
+      );
+
+      doc.text(splitText, 10, y);
+
+      y += splitText.length * 5;
+
+      const date = new Date(note.createdAt)
+        .toLocaleString("en-IN");
+
+      doc.setTextColor(150);
+
+      doc.text(`Time: ${date}`, 12, y);
+
+      doc.setTextColor(0);
+
+      y += 8;
+
+    });
+
+    // Save
+    doc.save(
+      `${viewLead.leadName || 'lead'}-history.pdf`
+    );
   };
 
   const counts = {
@@ -360,10 +606,64 @@ function Leads() {
           <h2>Lead Management</h2>
           <p>Track enquiries across New, Routine and Closed categories</p>
         </div>
-        {isAdmin && <button className="leads-btn-primary" onClick={() => handleOpenForm()}>
+        {/* {isAdmin && <button className="leads-btn-primary" onClick={() => handleOpenForm()}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
           Add Lead
-        </button>}
+        </button>} */}
+
+        <div className="leads-header-actions">
+
+          <button
+            className="leads-btn-ghost"
+            onClick={handleDownloadTemplate}
+          >
+            Template
+          </button>
+
+          <button
+            className="leads-btn-ghost"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Import
+          </button>
+
+          <button
+            className="leads-btn-ghost"
+            onClick={handleExport}
+          >
+            Export
+          </button>
+
+          <input
+            type="file"
+            accept=".xlsx,.xls"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            onChange={handleImport}
+          />
+
+          {isAdmin && (
+            <button
+              className="leads-btn-primary"
+              onClick={() => handleOpenForm()}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+
+              Add Lead
+            </button>
+          )}
+
+        </div>
       </div>
 
       {/* Stats */}
@@ -639,12 +939,72 @@ function Leads() {
               </div>
             </div>
 
-            <div className="leads-modal-foot">
               {/* <button className="leads-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button> */}
+            {/* <div className="leads-modal-foot">
               <button className="leads-btn-primary" onClick={handleSave} disabled={saving}>
                 {saving && <span className="leads-spinner" />}
                 {saving ? 'Saving...' : editLead ? 'Update Lead' : 'Add Lead'}
               </button>
+            </div> */}
+
+            <div className="leads-modal-foot">
+
+              <button
+                className="leads-btn-ghost"
+                onClick={async () => {
+
+                  try {
+
+                    setSaving(true);
+
+                    const payload = {
+                      ...form,
+                      skipActivityLog: true
+                    };
+
+                    await updateLead({
+                      id: editLead._id,
+                      ...payload
+                    }).unwrap();
+
+                    showToast('Lead saved');
+
+                    setShowForm(false);
+
+                    refetchLeads();
+
+                    refetchAllLeads();
+
+                  } catch (err) {
+
+                    showToast(
+                      err.data?.message || 'Save failed',
+                      'error'
+                    );
+
+                  } finally {
+
+                    setSaving(false);
+
+                  }
+
+                }}
+              >
+                Save
+              </button>
+
+              <button
+                className="leads-btn-primary"
+                onClick={handleSave}
+                disabled={saving}
+              >
+                {saving
+                  ? 'Updating...'
+                  : editLead
+                    ? 'Update'
+                    : 'Add Lead'}
+              </button>
+
             </div>
           </div>
         </div>
@@ -764,7 +1124,8 @@ function Leads() {
                   </div>
 
                   <div className="leads-notes-section">
-                    <h4>📝 Notes & Follow-up History <span>({viewLead.notes?.length || 0})</span></h4>
+                    <h4>
+                      📝 Follow-up Notes & Communication History <span>({viewLead.notes?.length || 0})</span></h4>
                     <div className="leads-notes-list">
                       {(!viewLead.notes || viewLead.notes.length === 0) && (
                         <p className="leads-no-notes">No notes yet. Add your first note below.</p>

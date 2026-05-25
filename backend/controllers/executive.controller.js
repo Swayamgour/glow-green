@@ -29,9 +29,9 @@ const getExecutiveById = async (req, res) => {
 const createExecutive = async (req, res) => {
   try {
     const AuthUser = require('../models/AuthUser.model');
-    const name     = req.body?.name     || '';
-    const phone    = req.body?.phone    || '';
-    const email    = req.body?.email    || '';
+    const name = req.body?.name || '';
+    const phone = req.body?.phone || '';
+    const email = req.body?.email || '';
     const password = req.body?.password || '';
 
     if (!name || !phone || !email || !password) {
@@ -47,9 +47,9 @@ const createExecutive = async (req, res) => {
     }
 
     const executiveData = {
-      name:   name.trim(),
-      phone:  phone.trim(),
-      email:  email.trim().toLowerCase(),
+      name: name.trim(),
+      phone: phone.trim(),
+      email: email.trim().toLowerCase(),
       status: 'active',
     };
 
@@ -61,11 +61,11 @@ const createExecutive = async (req, res) => {
     console.log('Executive created:', executive._id);
 
     await AuthUser.create({
-      name:          executive.name,
-      email:         executive.email,
-      password:      password,
+      name: executive.name,
+      email: executive.email,
+      password: password,
       plainPassword: password,
-      role:          'executive',
+      role: 'executive',
     });
     console.log('AuthUser created');
 
@@ -80,30 +80,72 @@ const createExecutive = async (req, res) => {
 const updateExecutive = async (req, res) => {
   try {
     const executive = await Executive.findById(req.params.id);
+
     if (!executive) {
-      return res.status(404).json({ success: false, message: 'Executive not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Executive not found'
+      });
     }
+
+    const AuthUser = require('../models/AuthUser.model');
+
+    const authUser = await AuthUser.findOne({
+      email: executive.email
+    });
 
     const { name, phone, email, password, status } = req.body;
 
+    // Avatar Update
     if (req.file) {
       const fileData = fs.readFileSync(req.file.path);
-      executive.avatar = `data:${req.file.mimetype};base64,${fileData.toString('base64')}`;
+
+      executive.avatar =
+        `data:${req.file.mimetype};base64,${fileData.toString('base64')}`;
+
       fs.unlinkSync(req.file.path);
     }
 
-    if (name     !== undefined) executive.name     = name;
-    if (phone    !== undefined) executive.phone    = phone;
-    if (email    !== undefined) executive.email    = email;
-    if (password !== undefined) executive.password = password;
-    if (status   !== undefined) executive.status   = status;
+    // Executive Update
+    if (name !== undefined) executive.name = name;
+    if (phone !== undefined) executive.phone = phone;
+    if (email !== undefined) executive.email = email;
+    if (status !== undefined) executive.status = status;
+
+    // AuthUser Update
+    if (authUser) {
+
+      if (name !== undefined)
+        authUser.name = name;
+
+      if (email !== undefined)
+        authUser.email = email;
+
+      // Password Update
+      if (password !== undefined && password !== '') {
+        authUser.password = password;
+        authUser.plainPassword = password;
+      }
+
+      await authUser.save();
+    }
 
     await executive.save();
 
-    const { password: _, ...data } = executive.toObject();
-    res.status(200).json({ success: true, message: 'Executive updated', data });
+    const data = executive.toObject();
+
+    res.status(200).json({
+      success: true,
+      message: 'Executive updated successfully',
+      data,
+      password: authUser?.plainPassword || ''
+    });
+
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
@@ -140,7 +182,7 @@ const updateExecutivePassword = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Login account not found for this executive' });
     }
 
-    authUser.password      = password;
+    authUser.password = password;
     authUser.plainPassword = password;
     await authUser.save();
 
@@ -153,24 +195,43 @@ const updateExecutivePassword = async (req, res) => {
 // ─── VIEW executive password ──────────────────────────────────────────────────
 const viewExecutivePassword = async (req, res) => {
   try {
+
     const executive = await Executive.findById(req.params.id);
+
     if (!executive) {
-      return res.status(404).json({ success: false, message: 'Executive not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Executive not found'
+      });
     }
 
     const AuthUser = require('../models/AuthUser.model');
-    const authUser = await AuthUser.findOne({ email: executive.email }).select('+password');
+
+    const authUser = await AuthUser.findOne({
+      email: executive.email
+    });
+
     if (!authUser) {
-      return res.status(404).json({ success: false, message: 'Login account not found for this executive' });
+      return res.status(404).json({
+        success: false,
+        message: 'Login account not found'
+      });
     }
 
-    if (authUser.plainPassword) {
-      return res.json({ success: true, password: authUser.plainPassword });
-    }
+    return res.status(200).json({
+      success: true,
+      password: authUser.plainPassword || '',
+    });
 
-    return res.json({ success: true, password: '(Password was set before this feature was added — use Change Password to reset it)' });
   } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
+
+    console.log(err);
+
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
+
   }
 };
 

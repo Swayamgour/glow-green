@@ -23,7 +23,8 @@ import {
     User,
     Lock,
     Copy,
-    AlertCircle
+    AlertCircle,
+    Edit2
 } from 'lucide-react';
 import Switch from "@mui/material/Switch";
 import ConfirmationDialog from '../../components/ConfirmationDialog';
@@ -42,6 +43,8 @@ const Executives = () => {
 
     // State
     const [showAddExecutive, setShowAddExecutive] = useState(false);
+    const [showEditExecutive, setShowEditExecutive] = useState(false);
+    const [editingExecutive, setEditingExecutive] = useState(null);
     const [executiveForm, setExecutiveForm] = useState({
         name: '',
         phone: '',
@@ -90,11 +93,28 @@ const Executives = () => {
         setPhotoFile(null);
         setPhotoPreview(null);
         setShowAddExecutive(false);
+        setShowEditExecutive(false);
+        setEditingExecutive(null);
         setShowPassword(false);
         setShowConfirmPassword(false);
     };
 
-    const validateForm = () => {
+    const handleEditClick = (executive) => {
+        setEditingExecutive(executive);
+        setExecutiveForm({
+            name: executive.name || '',
+            phone: executive.phone || '',
+            email: executive.email || '',
+            password: '',
+            confirmPassword: ''
+        });
+        setPhotoPreview(executive.avatar ? getPhotoUrl(executive.avatar) : null);
+        setPhotoFile(null);
+        setShowEditExecutive(true);
+        setShowAddExecutive(false);
+    };
+
+    const validateForm = (isEdit = false) => {
         const phoneRegex = /^[0-9]{10}$/;
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -110,19 +130,22 @@ const Executives = () => {
             toast.error('Please enter a valid email address');
             return false;
         }
-        if (!executiveForm.password || executiveForm.password.length < 6) {
+        
+        // Only validate password for new executives or if password is being changed in edit
+        if (!isEdit && (!executiveForm.password || executiveForm.password.length < 6)) {
             toast.error('Password must be at least 6 characters');
             return false;
         }
-        if (executiveForm.password !== executiveForm.confirmPassword) {
+        if (!isEdit && executiveForm.password !== executiveForm.confirmPassword) {
             toast.error('Passwords do not match');
             return false;
         }
+        
         return true;
     };
 
     const handleSaveExecutive = async () => {
-        if (!validateForm()) return;
+        if (!validateForm(false)) return;
 
         setExecSaving(true);
         try {
@@ -139,6 +162,36 @@ const Executives = () => {
             refetch();
         } catch (err) {
             toast.error(err.data?.message || 'Failed to save executive');
+        } finally {
+            setExecSaving(false);
+        }
+    };
+
+    const handleUpdateExecutive = async () => {
+        if (!validateForm(true)) return;
+
+        setExecSaving(true);
+        try {
+            const formDataToSend = new FormData();
+            formDataToSend.append('name', executiveForm.name);
+            formDataToSend.append('phone', executiveForm.phone);
+            formDataToSend.append('email', executiveForm.email);
+            if (photoFile) formDataToSend.append('avatar', photoFile);
+            
+            // Only include password if it's being changed
+            if (executiveForm.password) {
+                formDataToSend.append('password', executiveForm.password);
+            }
+
+            await updateExecutive({ 
+                id: editingExecutive._id, 
+                ...Object.fromEntries(formDataToSend)
+            }).unwrap();
+            toast.success('Executive updated successfully');
+            handleExecutiveReset();
+            refetch();
+        } catch (err) {
+            toast.error(err.data?.message || 'Failed to update executive');
         } finally {
             setExecSaving(false);
         }
@@ -191,10 +244,6 @@ const Executives = () => {
             return false;
         }
     };
-
-    // const handleViewExecutive = (executive) => {
-    //     setViewModal({ isOpen: true, executive });
-    // };
 
     const handleViewPassword = async (executive) => {
         setPasswordViewModal({ 
@@ -264,6 +313,7 @@ const Executives = () => {
                     </button>
                 </div>
 
+                {/* Add Executive Form */}
                 {showAddExecutive && (
                     <div className="crm-form-card">
                         <div className="crm-form-topbar" />
@@ -390,6 +440,147 @@ const Executives = () => {
                     </div>
                 )}
 
+                {/* Edit Executive Form */}
+                {showEditExecutive && editingExecutive && (
+                    <div className="crm-form-card">
+                        <div className="crm-form-topbar" />
+                        <div className="crm-form-body">
+                            <div className="form-header">
+                                <h3>Edit Executive Details</h3>
+                                {/* <button className="close-btn" onClick={handleExecutiveReset}>
+                                    <X size={20} />
+                                </button> */}
+                            </div>
+
+                            {/* Photo */}
+                            <div className="profile-photo-section">
+                                {/* <div className="profile-avatar-upload">
+                                    {photoPreview
+                                        ? <img src={photoPreview} alt="Preview" className="avatar-preview" />
+                                        : editingExecutive.avatar
+                                            ? <img src={getPhotoUrl(editingExecutive.avatar)} alt={editingExecutive.name} className="avatar-preview" />
+                                            : <div className="avatar-placeholder">
+                                                <UserPlus size={24} />
+                                            </div>}
+                                    <label className="camera-btn" htmlFor="edit-photo-upload">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                            <circle cx="12" cy="13" r="4" />
+                                        </svg>
+                                    </label>
+                                    <input id="edit-photo-upload" type="file" accept="image/*" hidden onChange={handlePhotoChange} />
+                                </div> */}
+                                {/* <div className="profile-photo-info">
+                                    <h4>Profile Photo</h4>
+                                    <p>Upload a new profile picture (optional)</p>
+                                    <label htmlFor="edit-photo-upload" className="upload-link">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                            <polyline points="17 8 12 3 7 8" />
+                                            <line x1="12" y1="3" x2="12" y2="15" />
+                                        </svg>
+                                        Change Photo
+                                    </label>
+                                </div> */}
+                            </div>
+                            <div className="form-divider" />
+
+                            <div className="form-group full-width">
+                                <label>Full Name <span className="required">*</span></label>
+                                <div className="input-wrapper">
+                                    <User size={16} className="input-icon" />
+                                    <input
+                                        type="text"
+                                        placeholder="Enter executive's full name"
+                                        value={executiveForm.name}
+                                        onChange={e => setExecutiveForm({ ...executiveForm, name: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Phone Number <span className="required">*</span></label>
+                                    <div className="input-wrapper">
+                                        <Phone size={16} className="input-icon" />
+                                        <input
+                                            type="tel"
+                                            placeholder="10-digit mobile number"
+                                            value={executiveForm.phone}
+                                            maxLength={10}
+                                            onChange={e => {
+                                                const val = e.target.value.replace(/\D/g, '');
+                                                setExecutiveForm({ ...executiveForm, phone: val });
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="form-group">
+                                    <label>Email Address <span className="required">*</span></label>
+                                    <div className="input-wrapper">
+                                        <Mail size={16} className="input-icon" />
+                                        <input
+                                            type="email"
+                                            placeholder="executive@company.com"
+                                            value={executiveForm.email}
+                                            onChange={e => setExecutiveForm({ ...executiveForm, email: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>New Password (Optional)</label>
+                                    <div className="input-wrapper">
+                                        <Lock size={16} className="input-icon" />
+                                        <input
+                                            type={showPassword ? 'text' : 'password'}
+                                            placeholder="Leave blank to keep current password"
+                                            value={executiveForm.password}
+                                            onChange={e => setExecutiveForm({ ...executiveForm, password: e.target.value })}
+                                        />
+                                        <button className="eye-btn" type="button" onClick={() => setShowPassword(!showPassword)}>
+                                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
+                                    <small style={{ color: 'var(--text-secondary)', fontSize: 11 }}>
+                                        Only fill if you want to change the password
+                                    </small>
+                                </div>
+                                {executiveForm.password && (
+                                    <div className="form-group">
+                                        <label>Confirm New Password</label>
+                                        <div className="input-wrapper">
+                                            <Lock size={16} className="input-icon" />
+                                            <input
+                                                type={showConfirmPassword ? 'text' : 'password'}
+                                                placeholder="Confirm new password"
+                                                value={executiveForm.confirmPassword}
+                                                onChange={e => setExecutiveForm({ ...executiveForm, confirmPassword: e.target.value })}
+                                            />
+                                            <button className="eye-btn" type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                                                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="form-actions">
+                                <button className="btn-reset" onClick={handleExecutiveReset}>
+                                    <X size={15} />
+                                    Cancel
+                                </button>
+                                <button className="btn-primary" onClick={handleUpdateExecutive} disabled={execSaving}>
+                                    {execSaving ? <span className="spinner" /> : <Save size={15} />}
+                                    {execSaving ? 'Updating...' : 'Update Executive'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Executives List */}
                 <div className="card">
                     <div className="card-header">
@@ -444,14 +635,14 @@ const Executives = () => {
                                                 </td>
                                                 <td>
                                                     <div className="actions-cell">
-                                                        {/* View Details Button */}
-                                                        {/* <button
-                                                            className="action-btn view"
-                                                            title="View Executive Details"
-                                                            onClick={() => handleViewExecutive(exec)}
+                                                        {/* Edit Button */}
+                                                        <button
+                                                            className="action-btn edit"
+                                                            title="Edit Executive Details"
+                                                            onClick={() => handleEditClick(exec)}
                                                         >
-                                                            <Eye size={14} />
-                                                        </button> */}
+                                                            <Edit2 size={14} />
+                                                        </button>
 
                                                         {/* View Password Button */}
                                                         <button
@@ -625,35 +816,22 @@ const Executives = () => {
                                             style={{ fontFamily: 'monospace' }} 
                                         />
                                     </div>
+                                    <div className="form-actions" style={{ marginTop: 20, padding: 0 }}>
+                                        <button 
+                                            className="btn-primary" 
+                                            onClick={handleSetNewPassword}
+                                            style={{ width: '100%' }}
+                                        >
+                                            <Save size={15} />
+                                            Set New Password
+                                        </button>
+                                    </div>
                                 </>
                             )}
                         </div>
-
-                        {/* <div className="modal-footer">
-                            {passwordViewModal.needsReset ? (
-                                <button
-                                    className="btn-primary"
-                                    onClick={handleSetNewPassword}
-                                >
-                                    <Save size={14} />
-                                    Save Password
-                                </button>
-                            ) : (
-                                <button
-                                    className="btn-primary"
-                                    onClick={() => setPasswordViewModal({ 
-                                        isOpen: false, executive: null, password: '', needsReset: false, loading: false 
-                                    })}
-                                >
-                                    Close
-                                </button>
-                            )}
-                        </div> */}
                     </div>
                 </div>
             )}
-
-           
         </>
     );
 };

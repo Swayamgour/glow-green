@@ -213,64 +213,278 @@ const importProducts = async (req, res) => {
 };
 
 const exportProducts = async (req, res) => {
+
   try {
+
     let { type } = req.query;
 
-    type = type?.trim(); // ✅ fix
-
-    // console.log(type)
+    type = type?.trim();
 
     if (type === 'All' || !type) {
       type = '';
     }
 
     const filter = {};
+
     if (type) {
       filter.type = type.toUpperCase();
     }
 
-    const products = await Product.find(filter).sort({ type: 1, name: 1 });
+    const products = await Product.find(filter)
+      .sort({ type: 1, name: 1 });
 
     const workbook = new ExcelJS.Workbook();
 
-    const types = type ? [type.toUpperCase()] : ['RM', 'FM', 'SM'];
+    const types = type
+      ? [type.toUpperCase()]
+      : ['RM', 'FM', 'SM'];
+
+
 
     types.forEach((t) => {
+
       const sheet = workbook.addWorksheet(`${t} Products`);
 
-      sheet.columns = [
-        { header: '#', key: 'sr', width: 5 },
-        { header: 'Name', key: 'name', width: 28 },
-        { header: 'Code', key: 'code', width: 14 },
-        { header: 'Category', key: 'category', width: 16 },
-        { header: 'Unit', key: 'unit', width: 10 },
-        { header: 'HSN', key: 'hsn', width: 12 },
-        { header: 'Price (₹)', key: 'price', width: 14 },
-        { header: 'Stock', key: 'stock', width: 12 },
-        { header: 'Description', key: 'description', width: 36 },
-        { header: 'Status', key: 'status', width: 12 },
-      ];
 
-      const filteredProducts = products.filter(
-        (p) => (p.type || '').toUpperCase() === t
-      );
 
-      filteredProducts.forEach((p, index) => {
-        sheet.addRow({
-          sr: index + 1,
-          name: p.name,
-          code: p.code,
-          category: p.category,
-          unit: p.unit,
-          hsn: p.hsn,
-          price: p.price,
-          stock: p.stock,
-          description: p.description,
-          status: p.status,
+      // ================= RM =================
+      if (t === 'RM') {
+
+        sheet.columns = [
+
+          { header: '#', key: 'sr', width: 5 },
+
+          { header: 'Product Name *', key: 'name', width: 28 },
+
+          { header: 'Code', key: 'code', width: 14 },
+
+          { header: 'Category1', key: 'category1', width: 16 },
+
+          { header: 'Category2', key: 'category2', width: 16 },
+
+          { header: 'Category3', key: 'category3', width: 16 },
+
+          { header: 'Unit', key: 'unit', width: 10 },
+
+          { header: 'HSN', key: 'hsn', width: 12 },
+
+          { header: 'Price', key: 'price', width: 14 },
+
+          { header: 'MinQty', key: 'minQty', width: 10 },
+
+          { header: 'MaxQty', key: 'maxQty', width: 10 },
+
+        ];
+
+
+
+        const rmProducts = products.filter(
+          (p) => (p.type || '').toUpperCase() === 'RM'
+        );
+
+
+
+        rmProducts.forEach((p, index) => {
+
+          sheet.addRow({
+
+            sr: index + 1,
+
+            name: p.name || '',
+
+            code: p.code || '',
+
+            category1: p.rmDetails?.category1 || '',
+
+            category2: p.rmDetails?.category2 || '',
+
+            category3: p.rmDetails?.category3 || '',
+
+            unit: p.rmDetails?.unit || '',
+
+            hsn: p.hsn || '',
+
+            price: p.price || 0,
+
+            minQty: p.rmDetails?.minQty || 0,
+
+            maxQty: p.rmDetails?.maxQty || 0,
+
+          });
+
         });
+
+      }
+
+
+
+      // ================= SM =================
+      if (t === 'SM') {
+
+        sheet.columns = [
+
+          { header: '#', key: 'sr', width: 5 },
+
+          { header: 'Product Name *', key: 'name', width: 28 },
+
+          { header: 'Category_sfg_1', key: 'cat1', width: 16 },
+
+          { header: 'Category_sfg_2', key: 'cat2', width: 16 },
+
+          { header: 'Category_sfg_3', key: 'cat3', width: 16 },
+
+          { header: 'Category_sfg_4', key: 'cat4', width: 16 },
+
+          { header: 'Category_sfg_5', key: 'cat5', width: 16 },
+
+          { header: 'HSN', key: 'hsn', width: 12 },
+
+          { header: 'Price', key: 'price', width: 14 },
+
+          { header: 'MinQty', key: 'minQty', width: 10 },
+
+          { header: 'MaxQty', key: 'maxQty', width: 10 },
+
+        ];
+
+
+
+        const smProducts = products.filter(
+          (p) => (p.type || '').toUpperCase() === 'SM'
+        );
+
+
+
+        smProducts.forEach((p, index) => {
+
+          sheet.addRow({
+
+            sr: index + 1,
+
+            name: p.name || '',
+
+            cat1: p.smDetails?.category1 || '',
+
+            cat2: p.smDetails?.category2 || '',
+
+            cat3: p.smDetails?.category3 || '',
+
+            cat4: p.smDetails?.category4 || '',
+
+            cat5: p.smDetails?.category5 || '',
+
+            hsn: p.hsn || '',
+
+            price: p.price || 0,
+
+            minQty: p.smDetails?.minQty || 0,
+
+            maxQty: p.smDetails?.maxQty || 0,
+
+          });
+
+        });
+
+      }
+
+
+
+      // ================= FM =================
+      if (t === 'FM') {
+
+        sheet.columns = [
+
+          { header: '#', key: 'sr', width: 5 },
+
+          { header: 'Product Name *', key: 'name', width: 28 },
+
+          { header: 'Category1', key: 'category1', width: 16 },
+
+          { header: 'Category2', key: 'category2', width: 16 },
+
+          { header: 'Category3', key: 'category3', width: 16 },
+
+          { header: 'BrandName', key: 'brand', width: 16 },
+
+          { header: 'HSN', key: 'hsn', width: 12 },
+
+          { header: 'Price', key: 'price', width: 14 },
+
+          { header: 'ReOrderQty', key: 'reorder', width: 12 },
+
+          { header: 'Weight_Per_Box', key: 'weight', width: 14 },
+
+          { header: 'Qty_Per_Box', key: 'qtyBox', width: 14 },
+
+          { header: 'FG Cost', key: 'fgCost', width: 14 },
+
+        ];
+
+
+
+        const fmProducts = products.filter(
+          (p) => (p.type || '').toUpperCase() === 'FM'
+        );
+
+
+
+        fmProducts.forEach((p, index) => {
+
+          sheet.addRow({
+
+            sr: index + 1,
+
+            name: p.name || '',
+
+            category1: p.fmDetails?.category1 || '',
+
+            category2: p.fmDetails?.category2 || '',
+
+            category3: p.fmDetails?.category3 || '',
+
+            brand: p.fmDetails?.brandName || '',
+
+            hsn: p.hsn || '',
+
+            price: p.price || 0,
+
+            reorder: p.fmDetails?.reOrderQty || 0,
+
+            weight: p.fmDetails?.weightPerBox || 0,
+
+            qtyBox: p.fmDetails?.qtyPerBox || 0,
+
+            fgCost: p.fmDetails?.fgCost || 0,
+
+          });
+
+        });
+
+      }
+
+
+
+      // Header Style
+      sheet.getRow(1).eachCell((cell) => {
+
+        cell.font = {
+          bold: true,
+          color: { argb: 'FFFFFFFF' }
+        };
+
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF1A3C6E' }
+        };
+
       });
+
     });
 
+
+
+    // Response
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -282,12 +496,20 @@ const exportProducts = async (req, res) => {
     );
 
     await workbook.xlsx.write(res);
+
     res.end();
 
   } catch (err) {
+
     console.error("EXPORT ERROR:", err);
-    return res.status(500).json({ success: false, message: err.message });
+
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
+
   }
+
 };
 
 

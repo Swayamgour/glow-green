@@ -888,3 +888,23 @@
     margin: 16px;
   }
 }
+
+.prod-table-wrap{
+  width:100%;
+  overflow-x:auto;
+}
+
+.prod-table{
+  min-width:1400px;
+}
+
+
+.prod-category-badge{
+  padding:4px 10px;
+  border-radius:20px;
+  background:#eef2ff;
+  color:#4338ca;
+  font-size:12px;
+  font-weight:600;
+  white-space:nowrap;
+}

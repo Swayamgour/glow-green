@@ -278,6 +278,7 @@ const exportExcel = async (req, res) => {
       { header: 'SmanId', key: 'smanid', width: 10 },
       { header: 'Salemanname', key: 'salemanname', width: 20 },
       { header: 'ActiveYN', key: 'activeyn', width: 8 },
+      { header: 'Category', key: 'category', width: 15 },
       { header: 'Created At', key: 'createdAt', width: 20 } // Added Created At
     ];
 
@@ -355,6 +356,7 @@ const exportExcel = async (req, res) => {
         smanid: c.smanid || '',
         salemanname: c.salemanname || '',
         activeyn: c.activeyn || 'Y',
+        category: c.category || 'routine',
         createdAt: c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-IN') : ''
       });
     });
@@ -461,7 +463,10 @@ const importExcel = async (req, res) => {
           conperson: row.getCell(52).value?.toString().trim() || '',
           smanid: row.getCell(53).value?.toString().trim() || '',
           salemanname: row.getCell(54).value?.toString().trim() || '',
-          activeyn: row.getCell(55).value?.toString().trim() || 'Y'
+          activeyn: row.getCell(55).value?.toString().trim() || 'Y',
+          // activeyn: row.getCell(55).value?.toString().trim() || 'Y',
+
+          category: row.getCell(56).value?.toString().trim().toLowerCase() || 'routine'
         };
 
         // Validate required fields
@@ -515,7 +520,7 @@ const downloadTemplate = async (req, res) => {
       'gstnBill', 'gstnShip', 'AgentId', 'SvrPost', 'Grp', 'AccNo', 'Benif_Name',
       'BankName', 'BranchName', 'BranchAdd', 'ifsc_Code', 'JOBWORK', 'Active',
       'sman_id', 'ShipPanno', 'State', 'Disp_StateName', 'Disp_StateCode',
-      'Disp_pin', 'Freight', 'ShippingName', 'ConPerson', 'SmanId', 'Salemanname', 'ActiveYN'
+      'Disp_pin', 'Freight', 'ShippingName', 'ConPerson', 'SmanId', 'Salemanname', 'ActiveYN' , 'Category'
     ];
 
     sheet.columns = headers.map(header => ({
@@ -598,7 +603,8 @@ const downloadTemplate = async (req, res) => {
       '', // ConPerson
       '17', // SmanId
       'NON ROUTINE OEM', // Salemanname
-      'Y' // ActiveYN
+      'Y', // ActiveYN
+      'routine'
     ]);
 
     // Add a second empty row for user to fill

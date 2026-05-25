@@ -18,8 +18,8 @@ const getToken = () => localStorage.getItem('gg_token');
 // Base query with authentication
 const baseQuery = fetchBaseQuery({
 
-    // baseUrl: 'http://localhost:5000',
-    baseUrl: 'https://glow-green.onrender.com',
+    baseUrl: 'http://localhost:5000',
+    // baseUrl: 'https://glow-green.onrender.com',
     prepareHeaders: (headers) => {
         const token = getToken();
 
@@ -461,6 +461,45 @@ export const api = createApi({
             invalidatesTags: (result, error, { id }) => [{ type: "Leads", id }]
         }),
 
+
+        // Export Leads Excel
+        exportLeadsExcel: builder.mutation({
+            query: () => ({
+                url: "/api/leads/export",
+                method: "GET",
+                responseHandler: async (response) => response.blob(),
+            }),
+        }),
+
+
+        // Download Lead Template
+        downloadLeadTemplate: builder.mutation({
+            query: () => ({
+                url: "/api/leads/template",
+                method: "GET",
+                responseHandler: async (response) => response.blob(),
+            }),
+        }),
+
+
+        // Import Leads Excel
+        importLeadsExcel: builder.mutation({
+            query: (formData) => ({
+                url: "/api/leads/import",
+                method: "POST",
+                body: formData,
+            }),
+
+            transformResponse: (response) => {
+                if (!response.success)
+                    throw new Error(response.message);
+
+                return response;
+            },
+
+            invalidatesTags: ["Leads"]
+        }),
+
         // ================= PRODUCTS ENDPOINTS =================
         getProducts: builder.query({
             query: (params = {}) => {
@@ -863,6 +902,11 @@ export const {
     useUpdateLeadFieldMutation,
     useAddLeadNoteMutation,
     useDeleteLeadNoteMutation,
+
+
+    useExportLeadsExcelMutation,
+    useDownloadLeadTemplateMutation,
+    useImportLeadsExcelMutation,
     // useAddLeadNoteMutation,
 
     // Products

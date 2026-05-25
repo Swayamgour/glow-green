@@ -12,6 +12,8 @@ const customerSchema = new mongoose.Schema({
   pname: { type: String, trim: true, default: '' },
   source: { type: String },
 
+
+
   // Address Fields
   add1: { type: String, trim: true, default: '' },
   add2: { type: String, trim: true, default: '' },
@@ -86,6 +88,12 @@ const customerSchema = new mongoose.Schema({
   smanid: { type: String, trim: true, default: '' },
   salemanname: { type: String, trim: true, default: '' },
   activeyn: { type: String, trim: true, default: 'Y' },
+
+  category: {
+    type: String,
+    enum: ['old', 'routine', 'closed'],
+    default: 'routine'
+  },
 
   assignedTo: {
     type: mongoose.Schema.Types.ObjectId,

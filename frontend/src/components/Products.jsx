@@ -107,7 +107,35 @@ export default function Products() {
   const [triggerExport] = useLazyExportProductsExcelQuery();
   const [triggerTemplate] = useLazyDownloadProductTemplateQuery();
 
-  const products = productsData;
+  const products = (productsData || []).filter((p) => {
+
+    const searchText = search.toLowerCase();
+
+    if (!searchText) return true;
+
+    return (
+
+      p.name?.toLowerCase().includes(searchText) ||
+
+      p.code?.toLowerCase().includes(searchText) ||
+
+      p.hsn?.toLowerCase().includes(searchText) ||
+
+      p.rmDetails?.category1
+        ?.toLowerCase()
+        .includes(searchText) ||
+
+      p.smDetails?.category1
+        ?.toLowerCase()
+        .includes(searchText) ||
+
+      p.fmDetails?.category1
+        ?.toLowerCase()
+        .includes(searchText)
+
+    );
+
+  });
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -733,7 +761,7 @@ export default function Products() {
         </svg>
         <input
           type="text"
-          placeholder="Search by name, code, or HSN..."
+          placeholder="Search by name, code, HSN, or category..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
@@ -764,6 +792,7 @@ export default function Products() {
                   <th>Product Name</th>
                   <th>Code</th>
                   <th>Type</th>
+                  <th>Category</th>
                   <th>HSN</th>
                   <th>Price</th>
                   <th>Status</th>
@@ -782,6 +811,19 @@ export default function Products() {
                     <td>
                       <span className={`prod-type-badge ${p.type.toLowerCase()}`}>
                         {p.type}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="prod-category-badge">
+                        {
+                          p.rmDetails?.category1 ||
+
+                          p.smDetails?.category1 ||
+
+                          p.fmDetails?.category1 ||
+
+                          '—'
+                        }
                       </span>
                     </td>
                     <td>{p.hsn || '—'}</td>

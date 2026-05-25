@@ -959,3 +959,553 @@
     opacity: 1;
   }
 }
+
+.qt-items-table {
+  min-width: 100%;
+}
+
+/* =========================================
+   QUOTATION COMPANY HEADER
+========================================= */
+
+.quote-company-header {
+  text-align: center;
+  padding: 20px;
+  border-bottom: 2px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.quote-company-header h1 {
+  font-size: 30px;
+  font-weight: 700;
+  color: #16a34a;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.quote-company-header p {
+  margin: 4px 0;
+  color: #4b5563;
+  font-size: 14px;
+}
+
+
+/* =========================================
+   QUOTATION META
+========================================= */
+
+.quote-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.quote-meta div {
+  font-size: 15px;
+  color: #111827;
+}
+
+.quote-meta strong {
+  color: #374151;
+  margin-right: 6px;
+}
+
+
+/* =========================================
+   CUSTOMER DETAILS
+========================================= */
+
+.quote-customer {
+  padding: 22px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.quote-customer h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  color: #111827;
+  font-weight: 700;
+}
+
+.quote-customer p {
+  margin: 5px 0;
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+
+/* =========================================
+   PDF PREVIEW MODAL IMPROVEMENT
+========================================= */
+
+.pdf-preview-modal {
+  width: 95%;
+  max-width: 1500px;
+  max-height: 95vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 18px;
+}
+
+.pdf-preview-content {
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
+}
+
+
+/* =========================================
+   TABLE SCROLL
+========================================= */
+
+.qt-items-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.qt-items-table {
+  min-width: 100%;
+}
+
+
+/* =========================================
+   IMAGE INPUT
+========================================= */
+
+.qt-item-input[type="file"] {
+  width: 140px;
+  font-size: 12px;
+}
+
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media(max-width:768px) {
+
+  .quote-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .quote-company-header h1 {
+    font-size: 22px;
+  }
+
+  .quote-customer {
+    padding: 18px;
+  }
+
+}
+
+/* Price required warning */
+.price-required {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2 !important;
+}
+
+.price-warning {
+  font-size: 10px;
+  color: #ef4444;
+  display: block;
+  margin-top: 2px;
+  text-align: center;
+}
+
+/* Product select styling */
+.qt-item-select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
+  background-color: white;
+}
+
+.qt-item-select:focus {
+  outline: none;
+  border-color: #6366f1;
+  ring: 2px solid #6366f1;
+}
+
+/* Description input styling */
+.qt-item-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.qt-item-input:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+.qt-item-input.center {
+  text-align: center;
+}
+
+.qt-item-input.right {
+  text-align: right;
+}
+
+
+
+
+
+
+
+/* =========================================
+   RESPONSIVE QUOTATION FORM
+========================================= */
+
+.qt-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.qt-form-left,
+.qt-form-right {
+  width: 100%;
+  min-width: 0;
+}
+
+/* =========================================
+   TABLE WRAP
+========================================= */
+
+.qt-items-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.qt-items-table {
+  width: 100%;
+  min-width: 1100px;
+  border-collapse: collapse;
+}
+
+.qt-items-table th {
+  background: #f8fafc;
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.qt-items-table td {
+  padding: 10px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: top;
+}
+
+/* =========================================
+   INPUTS
+========================================= */
+
+.qt-item-input,
+.qt-item-select,
+.qt-fg input,
+.qt-fg select,
+.qt-fg textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+  transition: 0.2s;
+  background: #fff;
+}
+
+.qt-item-input:focus,
+.qt-item-select:focus,
+.qt-fg input:focus,
+.qt-fg select:focus,
+.qt-fg textarea:focus {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+}
+
+/* =========================================
+   PRICE SECTION
+========================================= */
+
+.qt-price-display {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qt-price-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.qt-price-master {
+  color: #16a34a;
+  font-size: 14px;
+}
+
+.qt-price-edited {
+  color: #2563eb;
+  font-size: 14px;
+}
+
+.qt-price-badge {
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  font-weight: 600;
+}
+
+.qt-price-badge.manual {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.qt-price-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.qt-price-edit-btn,
+.qt-price-reset-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.qt-price-edit-btn {
+  background: #2563eb;
+  color: #fff;
+}
+
+.qt-price-reset-btn {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+/* =========================================
+   PRICE EDIT POPUP
+========================================= */
+
+.qt-price-edit-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.qt-price-edit-input {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.qt-price-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.qt-price-edit-save,
+.qt-price-edit-cancel {
+  flex: 1;
+  border: none;
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.qt-price-edit-save {
+  background: #16a34a;
+  color: #fff;
+}
+
+.qt-price-edit-cancel {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* =========================================
+   SUMMARY
+========================================= */
+
+.qt-summary {
+  margin-top: 20px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.qt-summary-row,
+.qt-summary-total {
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 18px;
+  font-size: 14px;
+}
+
+.qt-summary-row {
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.qt-summary-total {
+  background: #f8fafc;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.qt-summary-row.discount {
+  color: #dc2626;
+}
+
+/* =========================================
+   FORM ROWS
+========================================= */
+
+.qt-form-row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.qt-form-row3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+}
+
+/* =========================================
+   MOBILE RESPONSIVE
+========================================= */
+
+@media(max-width:1200px) {
+
+  .qt-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+@media(max-width:768px) {
+
+  .qt-page {
+    padding: 12px;
+  }
+
+  .qt-header {
+    flex-direction: column;
+    gap: 14px;
+    align-items: flex-start;
+  }
+
+  .qt-form-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .qt-form-row2,
+  .qt-form-row3 {
+    grid-template-columns: 1fr;
+  }
+
+  .qt-section {
+    padding: 14px;
+  }
+
+  .qt-items-table {
+    min-width: 900px;
+  }
+
+  .qt-summary-row,
+  .qt-summary-total {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  .qt-summary-total {
+    font-size: 16px;
+  }
+
+  .qt-add-item-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .qt-section-head {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .qt-price-actions {
+    flex-direction: column;
+  }
+
+  .qt-price-edit-actions {
+    flex-direction: column;
+  }
+
+}
+
+@media(max-width:480px) {
+
+  .qt-header h2 {
+    font-size: 22px;
+  }
+
+  .qt-card {
+    border-radius: 14px;
+  }
+
+  .qt-section {
+    border-radius: 14px;
+  }
+
+  .qt-item-input,
+  .qt-item-select {
+    font-size: 13px;
+    padding: 9px;
+  }
+
+  .qt-price-badge {
+    font-size: 9px;
+  }
+
+  .qt-summary-total {
+    font-size: 15px;
+  }
+
+}

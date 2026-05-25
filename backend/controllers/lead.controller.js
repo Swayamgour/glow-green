@@ -1,9 +1,14 @@
 const Lead = require('../models/Lead.model');
 const Customer = require('../models/Customer.model');
+const Executive = require('../models/Executive.model');
 const fs = require('fs');
 const path = require('path');
 const FormData = require('form-data');
 const fetch = require('node-fetch');
+const ExcelJS = require('exceljs');
+const { v4: uuidv4 } = require('uuid');
+
+
 
 // ── Helper: auto-create customer when lead is won ─────────────────────────────
 const autoCreateCustomer = async (lead) => {
@@ -192,9 +197,11 @@ const updateLead = async (req, res) => {
       }
     }
     if (req.body.expectedValue) changes.push(`Expected value updated to ₹${Number(req.body.expectedValue).toLocaleString('en-IN')}`);
-    if (changes.length > 0) {
+    if (changes.length > 0 && !req.body.skipActivityLog) {
+
       await logActivity(lead._id, 'Lead Updated', changes.join(' | '), req.user?.name || 'Admin');
     }
+
 
     return res.json({ success: true, data: lead });
   } catch (err) {
@@ -372,8 +379,327 @@ const scanNoteOCR = async (req, res) => {
   }
 };
 
+const exportExcel = async (req, res) => {
+  try {
+
+    const leads = await Lead.find()
+      .populate('assignedTo', 'name')
+      .sort({ createdAt: -1 });
+
+    const workbook = new ExcelJS.Workbook();
+
+    const sheet = workbook.addWorksheet('Leads');
+
+    sheet.columns = [
+      { header: 'Lead Name', key: 'leadName', width: 25 },
+      { header: 'Company', key: 'company', width: 25 },
+      { header: 'Phone', key: 'phone', width: 15 },
+      { header: 'Email', key: 'email', width: 25 },
+      { header: 'City', key: 'city', width: 20 },
+      { header: 'Source', key: 'leadSource', width: 20 },
+      { header: 'Status', key: 'leadStatus', width: 15 },
+      { header: 'Category', key: 'category', width: 15 },
+      { header: 'Assigned To', key: 'assignedTo', width: 20 },
+      { header: 'Created At', key: 'createdAt', width: 20 },
+    ];
+
+    // Header Style
+    sheet.getRow(1).eachCell(cell => {
+      cell.font = { bold: true };
+    });
+
+    // Data
+    leads.forEach((lead) => {
+
+      sheet.addRow({
+        leadName: lead.leadName || '',
+        company: lead.company || '',
+        phone: lead.phone || '',
+        email: lead.email || '',
+        city: lead.city || '',
+        leadSource: lead.leadSource || '',
+        leadStatus: lead.leadStatus || '',
+        category: lead.category || '',
+        assignedTo: lead.assignedTo?.name || '',
+        createdAt: new Date(lead.createdAt).toLocaleDateString('en-IN')
+      });
+
+    });
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename=leads.xlsx'
+    );
+
+    await workbook.xlsx.write(res);
+
+    res.end();
+
+  } catch (err) {
+
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+
+  }
+};
+
+const downloadTemplate = async (req, res) => {
+  try {
+
+    const workbook = new ExcelJS.Workbook();
+
+    const sheet = workbook.addWorksheet('Lead Template');
+
+    // Headers
+    const headers = [
+      'Lead Name',
+      'Phone',
+      'Email',
+      'Company',
+      'Lead Source',
+      'Category',
+      'Lead Status'
+    ];
+
+    // Columns
+    sheet.columns = [
+      { header: 'Lead Name', key: 'leadName', width: 30 },
+      { header: 'Phone', key: 'phone', width: 18 },
+      { header: 'Email', key: 'email', width: 30 },
+      { header: 'Company', key: 'company', width: 30 },
+      { header: 'Lead Source', key: 'leadSource', width: 20 },
+      { header: 'Category', key: 'category', width: 18 },
+      { header: 'Lead Status', key: 'leadStatus', width: 18 },
+    ];
+
+    // Header Style
+    sheet.getRow(1).eachCell((cell) => {
+
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4F46E5' }
+      };
+
+      cell.font = {
+        bold: true,
+        color: { argb: 'FFFFFFFF' }
+      };
+
+      cell.alignment = {
+        vertical: 'middle',
+        horizontal: 'center'
+      };
+
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+
+    });
+
+    // Sample Row
+    sheet.addRow([
+      'Umiya Assembly Technologies',
+      '9179846681',
+      '',
+      'Umiya Assembly Technologies',
+      'Website',
+      'new',
+      'open'
+    ]);
+
+    // Empty Row
+    sheet.addRow(Array(headers.length).fill(''));
+
+    // Border for all rows
+    sheet.eachRow((row) => {
+
+      row.eachCell((cell) => {
+
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+
+      });
+
+    });
+
+    // Response Headers
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename=lead_template.xlsx'
+    );
+
+    // Download
+    await workbook.xlsx.write(res);
+
+    res.end();
+
+  } catch (err) {
+
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+
+  }
+};
+
+const importExcel = async (req, res) => {
+  try {
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    const workbook = new ExcelJS.Workbook();
+
+    await workbook.xlsx.readFile(req.file.path);
+
+    const sheet = workbook.worksheets[0];
+
+    const leads = [];
+
+    // Get Active Executives
+    const executives = await Executive.find({
+      status: 'active'
+    });
+
+    let executiveIndex = 0;
+
+    sheet.eachRow((row, rowNumber) => {
+
+      // Skip Header
+      if (rowNumber === 1) return;
+
+      const phone =
+        row.getCell(2).value?.toString().trim() || '';
+
+      const email =
+        row.getCell(3).value?.toString().trim() || '';
+
+      const category =
+        row.getCell(6).value?.toString().trim().toLowerCase() || 'new';
+
+      // Skip Empty Rows
+      if (!phone) return;
+
+      // Auto Assign Executive
+      let assignedExecutive = null;
+
+      if (executives.length > 0) {
+
+        assignedExecutive =
+          executives[executiveIndex % executives.length]._id;
+
+        executiveIndex++;
+
+      }
+
+      const lead = {
+
+        leadName:
+          row.getCell(1).value?.toString().trim() || '',
+
+        phone,
+
+        email,
+
+        company:
+          row.getCell(4).value?.toString().trim() || '',
+
+        leadSource:
+          row.getCell(5).value?.toString().trim() || '',
+
+        category,
+
+        leadStatus:
+          row.getCell(7).value?.toString().trim().toLowerCase() || 'open',
+
+        assignedTo: assignedExecutive,
+
+      };
+
+      leads.push(lead);
+
+    });
+
+    // Remove Duplicates
+    const filteredLeads = [];
+
+    for (const lead of leads) {
+
+      const existingLead = await Lead.findOne({
+        $or: [
+          { phone: lead.phone },
+          ...(lead.email ? [{ email: lead.email }] : [])
+        ]
+      });
+
+      if (!existingLead) {
+        filteredLeads.push(lead);
+      }
+
+    }
+
+    // Insert Leads
+    if (filteredLeads.length > 0) {
+
+      await Lead.insertMany(filteredLeads);
+
+    }
+
+    // Delete Uploaded File
+    if (fs.existsSync(req.file.path)) {
+
+      fs.unlinkSync(req.file.path);
+
+    }
+
+    return res.json({
+      success: true,
+      imported: filteredLeads.length,
+      skipped: leads.length - filteredLeads.length,
+      message: 'Leads imported successfully'
+    });
+
+  } catch (err) {
+
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
+
+  }
+};
+
 module.exports = {
   getLeads, getLead, createLead, updateLead,
   updateLeadStatus, updateLeadCategory,
   addNote, deleteNote, deleteLead, scanNoteOCR,
+
+  exportExcel,
+  importExcel,
+  downloadTemplate
 };
