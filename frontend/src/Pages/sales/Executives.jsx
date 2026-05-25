@@ -319,7 +319,7 @@ const Executives = () => {
                         <div className="crm-form-topbar" />
                         <div className="crm-form-body">
                             {/* Photo */}
-                            <div className="profile-photo-section">
+                            {/* <div className="profile-photo-section">
                                 <div className="profile-avatar-upload">
                                     {photoPreview
                                         ? <img src={photoPreview} alt="Preview" className="avatar-preview" />
@@ -346,7 +346,7 @@ const Executives = () => {
                                         Upload Photo
                                     </label>
                                 </div>
-                            </div>
+                            </div> */}
                             <div className="form-divider" />
 
                             <div className="form-group full-width">

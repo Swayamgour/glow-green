@@ -18,8 +18,8 @@ const getToken = () => localStorage.getItem('gg_token');
 // Base query with authentication
 const baseQuery = fetchBaseQuery({
 
-    baseUrl: 'http://localhost:5000',
-    // baseUrl: 'https://glow-green.onrender.com',
+    // baseUrl: 'http://localhost:5000',
+    baseUrl: 'https://glow-green.onrender.com',
     prepareHeaders: (headers) => {
         const token = getToken();
 
