@@ -55,7 +55,7 @@ app.use('/api/reports', require('./routes/reports.routes'));
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', message: ' Glow Green CRM API is running' });
+  res.json({ status: 'ok', message: ' Glow Green new update coded CRM API is running' });
 });
 
 app.post('/api/test-exec', require('./middleware/auth.middleware').protect, async (req, res) => {
