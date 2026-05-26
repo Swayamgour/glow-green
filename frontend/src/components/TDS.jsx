@@ -5,7 +5,8 @@ import {
   useUploadTDSMutation,
   useUpdateTDSMutation,
   useDeleteTDSMutation,
-  useLazyDownloadTDSQuery
+  useLazyDownloadTDSQuery,
+  useGetProductsQuery
 } from '../Redux/api';
 import './TDS.css';
 
@@ -23,8 +24,31 @@ const FILE_ICONS = {
 const getFileInfo = (mime) => FILE_ICONS[mime] || { icon: '📎', label: 'FILE', color: '#6b7280' };
 
 const emptyForm = {
-  productName: '', productCode: '', category: '',
-  version: '', description: '', tags: '', status: 'active'
+
+  productId: '',
+
+  productName: '',
+
+  productCode: '',
+
+  category: '',
+
+  productType: '',
+
+  category1: '',
+
+  category2: '',
+
+  category3: '',
+
+  version: '',
+
+  description: '',
+
+  tags: '',
+
+  status: 'active'
+
 };
 
 export default function TDS() {
@@ -56,6 +80,9 @@ export default function TDS() {
   } = useGetTDSListQuery(queryParams);
 
   const { data: categoriesData = [] } = useGetTDSCategoriesQuery();
+  const { data: productsData = [] } = useGetProductsQuery();
+
+  const products = productsData || [];
 
   const [uploadTDS] = useUploadTDSMutation();
   const [updateTDS] = useUpdateTDSMutation();
@@ -94,6 +121,65 @@ export default function TDS() {
     });
     setShowUpload(true);
     setViewDoc(null);
+  };
+
+  const handleProductSelect = (
+    productId
+  ) => {
+
+    const product =
+      products.find(
+        p => p._id === productId
+      );
+
+    if (!product) return;
+
+    setForm(prev => ({
+
+      ...prev,
+
+      productId: product._id,
+
+      productName: product.name || '',
+
+      productCode:
+        product.code || '',
+
+      productType:
+        product.type || '',
+
+      category:
+        product.category || '',
+
+      category1:
+        product.fmDetails?.category1 ||
+
+        product.rmDetails?.category1 ||
+
+        product.smDetails?.category1 ||
+
+        '',
+
+      category2:
+        product.fmDetails?.category2 ||
+
+        product.rmDetails?.category2 ||
+
+        product.smDetails?.category2 ||
+
+        '',
+
+      category3:
+        product.fmDetails?.category3 ||
+
+        product.rmDetails?.category3 ||
+
+        product.smDetails?.category3 ||
+
+        ''
+
+    }));
+
   };
 
   const handleFileSelect = (f) => {
@@ -429,9 +515,177 @@ export default function TDS() {
 
               <div className="tds-form-row">
                 <div className="tds-fg">
-                  <label>Product Name <span className="req">*</span></label>
-                  <input type="text" placeholder="e.g. Epoxy Adhesive XL-200" value={form.productName}
-                    onChange={e => setForm(f => ({ ...f, productName: e.target.value }))} />
+
+                  <label>
+                    Select Product
+                    <span className="req">*</span>
+                  </label>
+
+                  <select
+                    value={form.productId}
+
+                    onChange={(e) =>
+                      handleProductSelect(
+                        e.target.value
+                      )
+                    }
+                  >
+
+                    <option value="">
+                      Select Product
+                    </option>
+
+                    {/* FINISHED GOODS */}
+
+                    <optgroup label="Finished Goods">
+
+                      {products
+                        .filter(
+                          p => p.type === 'FM'
+                        )
+                        .map((p) => (
+
+                          <option
+                            key={p._id}
+                            value={p._id}
+                          >
+
+                            {p.name}
+
+                            {/* {p.code &&
+                              ` (${p.code})`} */}
+
+                          </option>
+
+                        ))}
+
+                    </optgroup>
+
+                    {/* SEMI FINISHED */}
+
+                    <optgroup label="Semi Finished">
+
+                      {products
+                        .filter(
+                          p => p.type === 'SM'
+                        )
+                        .map((p) => (
+
+                          <option
+                            key={p._id}
+                            value={p._id}
+                          >
+
+                            {p.name}
+
+                            {p.code &&
+                              ` (${p.code})`}
+
+                          </option>
+
+                        ))}
+
+                    </optgroup>
+
+                    {/* RAW MATERIAL */}
+
+                    <optgroup label="Raw Material">
+
+                      {products
+                        .filter(
+                          p => p.type === 'RM'
+                        )
+                        .map((p) => (
+
+                          <option
+                            key={p._id}
+                            value={p._id}
+                          >
+
+                            {p.name}
+
+                            {p.code &&
+                              ` (${p.code})`}
+
+                          </option>
+
+                        ))}
+
+                    </optgroup>
+
+                  </select>
+
+
+                  {/* PRODUCT DETAILS */}
+
+                  {
+                    form.productId && (
+
+                      <div className="tds-product-details">
+
+                        {/* TYPE */}
+
+                        <div className="tds-product-badge type">
+
+                          {
+                            form.productType === 'FM'
+                              ? 'Finished Goods'
+
+                              : form.productType === 'SM'
+                                ? 'Semi Finished'
+
+                                : 'Raw Material'
+                          }
+
+                        </div>
+
+                        {/* CATEGORY 1 */}
+
+                        {
+                          form.category1 && (
+
+                            <div className="tds-product-badge">
+
+                              {form.category1}
+
+                            </div>
+
+                          )
+                        }
+
+                        {/* CATEGORY 2 */}
+
+                        {
+                          form.category2 && (
+
+                            <div className="tds-product-badge">
+
+                              {form.category2}
+
+                            </div>
+
+                          )
+                        }
+
+                        {/* CATEGORY 3 */}
+
+                        {
+                          form.category3 && (
+
+                            <div className="tds-product-badge">
+
+                              {form.category3}
+
+                            </div>
+
+                          )
+                        }
+
+                      </div>
+
+                    )
+                  }
+
                 </div>
                 <div className="tds-fg">
                   <label>Product Code</label>
