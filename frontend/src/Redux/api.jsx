@@ -19,7 +19,7 @@ const getToken = () => localStorage.getItem('gg_token');
 const baseQuery = fetchBaseQuery({
 
     // baseUrl: 'http://localhost:5010',
-    baseUrl: 'https://glow-green.onrender.com',
+    baseUrl: 'https://glow.green.api.amaxjobs.com/',
     prepareHeaders: (headers) => {
         const token = getToken();
 
