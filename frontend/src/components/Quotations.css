@@ -1509,3 +1509,661 @@
   }
 
 }
+
+/* =========================================
+   LINE ITEMS SECTION - IMPROVED UI
+   ========================================= */
+
+/* Section container */
+.qt-section {
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #e9edf2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: box-shadow 0.2s ease;
+}
+
+.qt-section:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+/* Section header */
+.qt-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 2px solid #f0f2f5;
+  background: #fafcfd;
+  border-radius: 20px 20px 0 0;
+}
+
+.qt-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a2c3e;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  letter-spacing: -0.2px;
+}
+
+/* Add item button */
+.qt-add-item-btn {
+  background: linear-gradient(135deg, #f0f7ff 0%, #e9f0fa 100%);
+  border: 1px solid #dce5ef;
+  border-radius: 40px;
+  padding: 0.5rem 1.2rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1e6f3f;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: inherit;
+  letter-spacing: -0.2px;
+}
+
+.qt-add-item-btn:hover {
+  background: linear-gradient(135deg, #e6f0fe 0%, #dfe8f4 100%);
+  border-color: #cbdbe0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+/* Table wrapper with better scroll styling */
+.qt-items-table-wrap {
+  overflow-x: auto;
+  border-radius: 0 0 20px 20px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.qt-items-table-wrap::-webkit-scrollbar {
+  height: 6px;
+}
+
+.qt-items-table-wrap::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+
+.qt-items-table-wrap::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+
+/* Table styles */
+.qt-items-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.8rem;
+  min-width: 1000px;
+}
+
+.qt-items-table thead tr th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1rem 0.75rem;
+  border-bottom: 1px solid #e9edf2;
+  border-top: none;
+  font-family: inherit;
+}
+
+.qt-items-table tbody tr td {
+  padding: 0.9rem 0.75rem;
+  border-bottom: 1px solid #f0f2f5;
+  vertical-align: middle;
+  background-color: #ffffff;
+  transition: background-color 0.2s ease;
+}
+
+.qt-items-table tbody tr:hover td {
+  background-color: #fafcff;
+}
+
+/* Serial number */
+.qt-sr {
+  font-weight: 500;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+/* Input and select styles */
+.qt-item-select,
+.qt-item-input {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.8rem;
+  color: #1e293b;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.qt-item-select:focus,
+.qt-item-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.qt-item-input.center {
+  text-align: center;
+}
+
+/* Description area with divider */
+.qt-items-table tbody tr td:first-child .qt-item-input {
+  margin-top: 0.5rem;
+  background: #fefefe;
+}
+
+/* Price display improved */
+.qt-price-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.qt-price-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.qt-price-master {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #2c7a4b;
+  background: #e8f3ed;
+  padding: 0.2rem 0.5rem;
+  border-radius: 20px;
+}
+
+.qt-price-edited {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #3b82f6;
+  background: #eef2ff;
+  padding: 0.2rem 0.5rem;
+  border-radius: 20px;
+}
+
+.qt-price-badge {
+  font-size: 0.65rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 30px;
+  background: #ecfdf5;
+  color: #065f46;
+  font-weight: 500;
+}
+
+.qt-price-badge.manual {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.qt-price-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.qt-price-edit-btn,
+.qt-price-reset-btn {
+  border: none;
+  border-radius: 20px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.qt-price-edit-btn {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.qt-price-edit-btn:hover {
+  background: #e2e8f0;
+  transform: translateY(-1px);
+}
+
+.qt-price-reset-btn {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.qt-price-reset-btn:hover {
+  background: #ffedd5;
+}
+
+.qt-price-info small {
+  font-size: 0.65rem;
+  color: #94a3b8;
+}
+
+/* Price edit popup */
+.qt-price-edit-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 0.3rem;
+}
+
+.qt-price-edit-input {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.qt-price-edit-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.qt-price-edit-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.qt-price-edit-save,
+.qt-price-edit-cancel {
+  flex: 1;
+  border: none;
+  border-radius: 10px;
+  padding: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.qt-price-edit-save {
+  background: #2c7a4b;
+  color: white;
+}
+
+.qt-price-edit-save:hover {
+  background: #1e5f3a;
+}
+
+.qt-price-edit-cancel {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.qt-price-edit-cancel:hover {
+  background: #fecaca;
+}
+
+/* Amount column */
+.qt-item-amount {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #1e293b;
+  white-space: nowrap;
+  text-align: right;
+  padding-right: 1rem;
+}
+
+/* Remove item button */
+.qt-remove-item {
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid #e2e8f0;
+  border-radius: 30px;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.qt-remove-item:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
+  transform: scale(1.02);
+}
+
+/* Product select dropdown - custom styling */
+.qt-item-select option {
+  padding: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .qt-section-head {
+    padding: 0.9rem 1rem;
+    flex-direction: column;
+    gap: 0.7rem;
+    align-items: stretch;
+  }
+  
+  .qt-add-item-btn {
+    justify-content: center;
+    width: auto;
+  }
+  
+  .qt-items-table tbody tr td {
+    padding: 0.7rem 0.5rem;
+  }
+  
+  .qt-price-actions {
+    flex-direction: row;
+  }
+}
+
+/* Modern scroll for table */
+.qt-items-table-wrap {
+  scroll-behavior: smooth;
+}
+
+/* Hover effect for rows */
+.qt-items-table tbody tr {
+  transition: all 0.1s;
+}
+
+/* Price cell styling */
+.qt-price-cell {
+  min-width: 140px;
+}
+
+/* Better divider between product select and description */
+.qt-items-table tbody tr td:first-child .qt-item-select {
+  margin-bottom: 0;
+}
+
+/* Improve focus visibility for accessibility */
+.qt-item-select:focus-visible,
+.qt-item-input:focus-visible,
+.qt-add-item-btn:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 1px;
+}
+
+/* Additional CSS for Improved UI */
+
+/* Product Select and Category Tags */
+.qt-product-select {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.qt-category-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.qt-category-tag {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.65rem;
+  font-weight: 500;
+}
+
+.qt-manual-desc {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed #e2e8f0;
+}
+
+/* Price Input Field */
+.qt-price-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.qt-price-input-wrapper:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.qt-currency-symbol {
+  padding: 0.5rem 0.6rem;
+  background: #f8fafc;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.8rem;
+  border-right: 1px solid #e2e8f0;
+}
+
+.qt-price-input-field {
+  flex: 1;
+  border: none;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1e293b;
+  outline: none;
+  text-align: right;
+}
+
+.qt-price-input-field::-webkit-inner-spin-button,
+.qt-price-input-field::-webkit-outer-spin-button {
+  opacity: 0.5;
+}
+
+/* Price Meta */
+.qt-price-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.qt-price-badge {
+  font-size: 0.6rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.qt-price-badge.master {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.qt-price-badge.edited {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.qt-price-badge.manual {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.qt-price-edit-icon,
+.qt-price-reset-icon {
+  background: transparent;
+  border: none;
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.qt-price-edit-icon:hover {
+  background: #e2e8f0;
+}
+
+.qt-price-reset-icon:hover {
+  background: #fee2e2;
+}
+
+.qt-price-info {
+  margin-top: 0.3rem;
+}
+
+.qt-price-info small {
+  font-size: 0.6rem;
+  color: #94a3b8;
+}
+
+/* Qty Input */
+.qty-input {
+  text-align: center;
+  font-weight: 600;
+}
+
+/* Discount Toggle Buttons */
+.qt-discount-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.qt-toggle-btn {
+  flex: 1;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #64748b;
+}
+
+.qt-toggle-btn.active {
+  background: #1a3c6e;
+  color: #ffffff;
+  border-color: #1a3c6e;
+}
+
+.qt-toggle-btn:hover:not(.active) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+/* Discount Input */
+.qt-discount-input {
+  position: relative;
+}
+
+.qt-discount-symbol {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.qt-discount-input input {
+  width: 100%;
+  padding: 0.6rem 0.8rem 0.6rem 2rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.8rem;
+}
+
+.qt-discount-input input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Disabled Select */
+.qt-disabled-select {
+  background: #f1f5f9;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Remove Item Button */
+.qt-remove-item {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.3rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.qt-remove-item svg {
+  stroke: #94a3b8;
+  transition: stroke 0.2s;
+}
+
+.qt-remove-item:hover {
+  background: #fee2e2;
+}
+
+.qt-remove-item:hover svg {
+  stroke: #dc2626;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .qt-category-tags {
+    gap: 0.3rem;
+  }
+  
+  .qt-category-tag {
+    font-size: 0.55rem;
+    padding: 0.15rem 0.4rem;
+  }
+  
+  .qt-price-input-field {
+    font-size: 0.75rem;
+  }
+  
+  .qt-discount-toggle {
+    flex-direction: column;
+  }
+  
+  .qt-toggle-btn {
+    text-align: center;
+  }
+}

@@ -4,7 +4,12 @@ const mongoose = require('mongoose');
 
 const customerSchema = new mongoose.Schema({
   // Basic Information
-  id: { type: Number, default: null },
+  // id: { type: Number, default: null },
+  id: {
+    type: String,
+    unique: true,
+    // required: true
+  },
   name: { type: String, required: true, trim: true },
   tp: { type: String, trim: true, default: '' },
   code: { type: String, trim: true, default: '' },

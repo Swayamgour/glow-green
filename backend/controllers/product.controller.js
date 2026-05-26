@@ -4,20 +4,126 @@ const path = require('path');
 const fs = require('fs');
 
 const getProducts = async (req, res) => {
-  try {
-    const { type, status, search } = req.query;
-    const filter = {};
-    if (type) filter.type = type;
-    if (status) filter.status = status;
-    if (search) filter.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { code: { $regex: search, $options: 'i' } },
-    ];
-    const products = await Product.find(filter).sort({ type: 1, name: 1 });
-    return res.json({ success: true, data: products });
-  } catch (err) { return res.status(500).json({ success: false, message: err.message }); }
-};
 
+  try {
+
+    const {
+      type,
+      status,
+      search
+    } = req.query;
+
+    const filter = {};
+
+    // TYPE FILTER
+
+    if (type) {
+      filter.type = type;
+    }
+
+    // STATUS FILTER
+
+    if (status) {
+      filter.status = status;
+    }
+
+    // SEARCH FILTER
+
+    if (search?.trim()) {
+
+      const searchRegex = {
+        $regex: search.trim(),
+        $options: 'i'
+      };
+
+      filter.$or = [
+
+        // BASIC
+
+        { name: searchRegex },
+
+        { code: searchRegex },
+
+        { hsn: searchRegex },
+
+        // RM
+
+        {
+          'rmDetails.category1':
+            searchRegex
+        },
+
+        {
+          'rmDetails.category2':
+            searchRegex
+        },
+
+        {
+          'rmDetails.category3':
+            searchRegex
+        },
+
+        // SM
+
+        {
+          'smDetails.category1':
+            searchRegex
+        },
+
+        {
+          'smDetails.category2':
+            searchRegex
+        },
+
+        {
+          'smDetails.category3':
+            searchRegex
+        },
+
+        // FM
+
+        {
+          'fmDetails.category1':
+            searchRegex
+        },
+
+        {
+          'fmDetails.category2':
+            searchRegex
+        },
+
+        {
+          'fmDetails.category3':
+            searchRegex
+        }
+
+      ];
+
+    }
+
+    // LATEST PRODUCTS FIRST
+
+    const products = await Product
+      .find(filter)
+      .sort({
+        createdAt: -1
+      });
+
+    return res.json({
+      success: true,
+      data: products
+    });
+
+  } catch (err) {
+
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
+
+  }
+
+};
 const getProduct = async (req, res) => {
   try {
     const p = await Product.findById(req.params.id);

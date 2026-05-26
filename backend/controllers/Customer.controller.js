@@ -390,26 +390,39 @@ const exportExcel = async (req, res) => {
 // Import customers from Excel
 const importExcel = async (req, res) => {
   try {
+
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
     }
 
     const workbook = new ExcelJS.Workbook();
+
     await workbook.xlsx.readFile(req.file.path);
+
     const sheet = workbook.worksheets[0];
 
-    const customers = [];
     const errors = [];
+
+    let imported = 0;
+    let updated = 0;
     let rowNum = 0;
 
-    sheet.eachRow((row, rowNumber) => {
+    // LOOP ROWS
+    for (let rowNumber = 2; rowNumber <= sheet.rowCount; rowNumber++) {
+
       rowNum = rowNumber;
-      if (rowNumber === 1) return; // Skip header row
+
+      const row = sheet.getRow(rowNumber);
 
       try {
-        // Get values from each column
+
         const customer = {
-          id: row.getCell(1).value || null,
+
+          id: row.getCell(1).value?.toString().trim(),
+
           name: row.getCell(2).value?.toString().trim() || '',
           tp: row.getCell(3).value?.toString().trim() || '',
           code: row.getCell(4).value?.toString().trim() || '',
@@ -464,43 +477,110 @@ const importExcel = async (req, res) => {
           smanid: row.getCell(53).value?.toString().trim() || '',
           salemanname: row.getCell(54).value?.toString().trim() || '',
           activeyn: row.getCell(55).value?.toString().trim() || 'Y',
-          // activeyn: row.getCell(55).value?.toString().trim() || 'Y',
 
-          category: row.getCell(56).value?.toString().trim().toLowerCase() || 'routine'
+          category:
+            row.getCell(56).value
+              ?.toString()
+              .trim()
+              .toLowerCase() || 'routine'
         };
 
-        // Validate required fields
-        if (!customer.name) {
-          errors.push(`Row ${rowNumber}: Name is required`);
-          return;
+        // VALIDATION
+
+        if (!customer.id) {
+
+          errors.push(
+            `Row ${rowNumber}: Customer ID is required`
+          );
+
+          continue;
         }
 
-        customers.push(customer);
+        if (!customer.name) {
+
+          errors.push(
+            `Row ${rowNumber}: Name is required`
+          );
+
+          continue;
+        }
+
+        // CHECK EXISTING CUSTOMER
+
+        const existingCustomer =
+          await Customer.findOne({
+            id: customer.id
+          });
+
+        if (existingCustomer) {
+
+          // UPDATE OLD CUSTOMER
+
+          await Customer.findOneAndUpdate(
+            { id: customer.id },
+            {
+              $set: customer
+            },
+            {
+              new: true
+            }
+          );
+
+          updated++;
+
+        } else {
+
+          // CREATE NEW CUSTOMER
+
+          await Customer.create(customer);
+
+          imported++;
+        }
 
       } catch (e) {
-        errors.push(`Row ${rowNumber}: ${e.message}`);
+
+        errors.push(
+          `Row ${rowNumber}: ${e.message}`
+        );
+
       }
-    });
-
-    // Insert customers if any
-    if (customers.length > 0) {
-      await Customer.insertMany(customers, { ordered: false });
     }
 
-    // Clean up uploaded file
-    if (fs.existsSync(req.file.path)) {
+    // DELETE FILE
+
+    if (
+      req.file.path &&
+      fs.existsSync(req.file.path)
+    ) {
+
       fs.unlinkSync(req.file.path);
+
     }
 
-    res.json({
+    return res.status(200).json({
+
       success: true,
-      imported: customers.length,
+
+      message: 'Excel imported successfully',
+
+      imported,
+      updated,
+
       totalRows: rowNum - 1,
-      errors: errors
+
+      errors
+
     });
 
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+
+    console.log(err);
+
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
+
   }
 };
 
@@ -520,7 +600,7 @@ const downloadTemplate = async (req, res) => {
       'gstnBill', 'gstnShip', 'AgentId', 'SvrPost', 'Grp', 'AccNo', 'Benif_Name',
       'BankName', 'BranchName', 'BranchAdd', 'ifsc_Code', 'JOBWORK', 'Active',
       'sman_id', 'ShipPanno', 'State', 'Disp_StateName', 'Disp_StateCode',
-      'Disp_pin', 'Freight', 'ShippingName', 'ConPerson', 'SmanId', 'Salemanname', 'ActiveYN' , 'Category'
+      'Disp_pin', 'Freight', 'ShippingName', 'ConPerson', 'SmanId', 'Salemanname', 'ActiveYN', 'Category'
     ];
 
     sheet.columns = headers.map(header => ({
@@ -611,13 +691,7 @@ const downloadTemplate = async (req, res) => {
     const emptyRow = Array(headers.length).fill('');
     sheet.addRow(emptyRow);
 
-    // Add instructions at the bottom
-    // sheet.addRow([]);
-    // sheet.addRow(['Instructions:']);
-    // sheet.addRow(['1. First row is sample data - you can delete it']);
-    // sheet.addRow(['2. Fields marked with * are required']);
-    // sheet.addRow(['3. Do not change the header row']);
-    // sheet.addRow(['4. You can add multiple rows of data']);
+
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=customer_template.xlsx');

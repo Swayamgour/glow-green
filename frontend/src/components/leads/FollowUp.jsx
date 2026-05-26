@@ -161,77 +161,55 @@ function FollowUp() {
                         Last 50 activities
                     </span>
                 </div>
-                <div style={{ padding: '8px 0', maxHeight: 500, overflowY: 'auto' }}>
+                {/* <div style={{ padding: '8px 0', maxHeight: 500, overflowY: 'auto' }}> */}
+                <div className="followup-history-grid">
                     {allActivities.map((event, i) => (
+
                         <div
                             key={i}
-                            style={{
-                                display: 'flex',
-                                gap: 12,
-                                padding: '10px 20px',
-                                borderBottom: '1px solid var(--bg-secondary)',
-                                alignItems: 'flex-start',
-                                transition: 'background 0.2s',
-                                hover: { background: 'var(--bg-secondary)' }
-                            }}
+                            className="followup-log-card"
                         >
-                            <div style={{
-                                width: 8,
-                                height: 8,
-                                borderRadius: '50%',
-                                background: '#6366f1',
-                                marginTop: 5,
-                                flexShrink: 0
-                            }} />
-                            <div style={{ flex: 1 }}>
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    flexWrap: 'wrap',
-                                    gap: 4
-                                }}>
-                                    <span style={{
-                                        fontSize: 13,
-                                        fontWeight: 600,
-                                        color: 'var(--text-primary)'
-                                    }}>
-                                        {event.leadName}
-                                    </span>
-                                    <span style={{
-                                        fontSize: 11,
-                                        color: '#9ca3af'
-                                    }}>
-                                        {formatDateTime(event.timestamp)}
-                                    </span>
+
+                            <div className="followup-log-header">
+
+                                <div className="followup-log-name">
+                                    {event.leadName}
                                 </div>
-                                <div style={{
-                                    fontSize: 12,
-                                    color: '#6366f1',
-                                    fontWeight: 500,
-                                    marginTop: 2
-                                }}>
-                                    {event.action}
+
+                                <div className="followup-log-time">
+                                    {formatDateTime(event.timestamp)}
                                 </div>
-                                {event.details && (
-                                    <div style={{
-                                        fontSize: 12,
-                                        color: 'var(--text-secondary)',
-                                        marginTop: 1
-                                    }}>
-                                        {event.details}
-                                    </div>
-                                )}
-                                {event.changedBy && (
-                                    <div style={{
-                                        fontSize: 11,
-                                        color: '#9ca3af',
-                                        marginTop: 1
-                                    }}>
-                                        by {event.changedBy}
-                                    </div>
-                                )}
+
                             </div>
+
+                            <div className="followup-log-action">
+                                {event.action}
+                            </div>
+
+                            {event.details && (
+
+                                <div className="followup-log-details">
+
+                                    {
+                                        event.details.length > 120
+                                            ? `${event.details.slice(0, 120)}...`
+                                            : event.details
+                                    }
+
+                                </div>
+
+                            )}
+
+                            {event.changedBy && (
+
+                                <div className="followup-log-user">
+                                    by {event.changedBy}
+                                </div>
+
+                            )}
+
                         </div>
+
                     ))}
                     {allActivities.length === 0 && (
                         <div className="empty-state">No activity yet.</div>

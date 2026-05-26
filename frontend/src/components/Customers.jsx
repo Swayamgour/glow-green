@@ -405,7 +405,7 @@ export default function Customers() {
     all: allCustomers.length,
     new: allCustomers.filter(c => c.category === 'new').length,
     routine: allCustomers.filter(c => c.category === 'routine').length,
-    closed: allCustomers.filter(c => c.category === 'closed').length,
+    old: allCustomers.filter(c => c.category === 'old').length,
   };
 
   // Render form fields based on active tab
@@ -780,7 +780,7 @@ export default function Customers() {
           { key: '', label: 'All', count: catCounts.all, color: '#4f46e5' },
           { key: 'new', label: 'New', count: catCounts.new, color: '#0ea5e9' },
           { key: 'routine', label: 'Routine', count: catCounts.routine, color: '#22c55e' },
-          { key: 'closed', label: 'Closed / Old', count: catCounts.closed, color: '#ef4444' },
+          { key: 'old', label: 'Closed / Old', count: catCounts.old, color: '#ef4444' },
         ].map(tab => (
           <button
             key={tab.key}

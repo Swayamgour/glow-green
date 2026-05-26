@@ -18,8 +18,8 @@ const getToken = () => localStorage.getItem('gg_token');
 // Base query with authentication
 const baseQuery = fetchBaseQuery({
 
-    // baseUrl: 'http://localhost:5000',
-    baseUrl: 'https://glow-green.onrender.com',
+    baseUrl: 'http://localhost:5010',
+    // baseUrl: 'https://glow-green.onrender.com',
     prepareHeaders: (headers) => {
         const token = getToken();
 
@@ -677,6 +677,30 @@ export const api = createApi({
             },
         }),
 
+        sendQuotationEmail: builder.mutation({
+
+            query: ({id}) => ({
+
+                url: `/api/quotations/${id}/send-email`,
+
+                method: 'POST'
+
+            })
+
+        }),
+
+        sendQuotationWhatsApp: builder.mutation({
+
+            query: (id) => ({
+
+                url: `/api/quotations/${id}/send-whatsapp`,
+
+                method: 'POST'
+
+            })
+
+        }),
+
         // ================= TDS ENDPOINTS =================
         getTDSList: builder.query({
             query: (params = {}) => {
@@ -927,6 +951,8 @@ export const {
     useDeleteQuotationMutation,
     useUpdateQuotationStatusMutation,
     useDownloadQuotationPDFQuery,
+    useSendQuotationEmailMutation,
+    useSendQuotationWhatsAppMutation,
 
     // TDS
     useGetTDSListQuery,

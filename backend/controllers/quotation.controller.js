@@ -4,6 +4,10 @@ const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const PDFDocument = require("pdfkit");
 
+const nodemailer = require('nodemailer');
+const axios = require('axios');
+const FormData = require('form-data');
+
 // ✅ Puppeteer FIX (Render compatible)
 const puppeteer = require("puppeteer-core");
 const chromium = require("@sparticuz/chromium");
@@ -364,6 +368,233 @@ const generatePricePDF = async (data, filePath) => {
 };
 
 
+// const nodemailer = require('nodemailer');
+
+const sendQuotationEmail = async (req, res) => {
+
+  try {
+
+    const quotation = await Quotation
+      .findById(req.params.id)
+      .populate('preparedBy', 'name');
+
+    if (!quotation) {
+
+      return res.status(404).json({
+        success: false,
+        message: 'Quotation not found'
+      });
+
+    }
+
+    if (!quotation.customerEmail) {
+
+      return res.status(400).json({
+        success: false,
+        message: 'Customer email not available'
+      });
+
+    }
+
+    const pdfPath = path.join(
+      quotationsDir,
+      quotation.pdfPath
+    );
+
+    // SMTP CONFIG
+
+    const transporter =
+      nodemailer.createTransport({
+
+        service: 'gmail',
+
+        auth: {
+
+          user: process.env.EMAIL_USER,
+
+          pass: process.env.EMAIL_PASS
+
+        }
+
+      });
+
+    // SEND EMAIL
+
+    await transporter.sendMail({
+
+      from: process.env.EMAIL_USER,
+
+      to: quotation.customerEmail,
+
+      subject:
+        `Quotation ${quotation.quotationNo}`,
+
+      html: `
+        <p>Dear ${quotation.customerName},</p>
+
+        <p>Please find attached quotation.</p>
+
+        <p>
+          <b>Quotation No:</b>
+          ${quotation.quotationNo}
+        </p>
+
+        <p>
+          <b>Total:</b>
+          ₹${quotation.grandTotal}
+        </p>
+
+        <br/>
+
+        <p>Regards,</p>
+
+        <p>
+          ${quotation.preparedBy?.name || 'Sales Team'}
+        </p>
+      `,
+
+      attachments: [
+
+        {
+
+          filename:
+            `${quotation.quotationNo}.pdf`,
+
+          path: pdfPath
+
+        }
+
+      ]
+
+    });
+
+    return res.json({
+
+      success: true,
+
+      message:
+        'Quotation email sent successfully'
+
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    return res.status(500).json({
+
+      success: false,
+
+      message: err.message
+
+    });
+
+  }
+
+};
+
+
+
+const sendQuotationWhatsApp = async (req, res) => {
+
+  try {
+
+    const quotation = await Quotation
+      .findById(req.params.id);
+
+    if (!quotation) {
+
+      return res.status(404).json({
+        success: false,
+        message: 'Quotation not found'
+      });
+
+    }
+
+    const phone =
+      quotation.customerPhone
+        ?.replace(/\D/g, '');
+
+    if (!phone) {
+
+      return res.status(400).json({
+        success: false,
+        message: 'Customer phone missing'
+      });
+
+    }
+
+    const pdfPath = path.join(
+      quotationsDir,
+      quotation.pdfPath
+    );
+
+    // META WHATSAPP API
+
+    await axios.post(
+
+      `https://graph.facebook.com/v22.0/${process.env.WHATSAPP_PHONE_ID}/messages`,
+
+      {
+
+        messaging_product: 'whatsapp',
+
+        to: phone,
+
+        type: 'template',
+
+        template: {
+
+          name: 'quotation_template',
+
+          language: {
+            code: 'en'
+          }
+
+        }
+
+      },
+
+      {
+
+        headers: {
+
+          Authorization:
+            `Bearer ${process.env.WHATSAPP_TOKEN}`,
+
+          'Content-Type':
+            'application/json'
+
+        }
+
+      }
+
+    );
+
+    return res.json({
+
+      success: true,
+
+      message:
+        'Quotation WhatsApp message sent'
+
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    return res.status(500).json({
+
+      success: false,
+
+      message: err.message
+
+    });
+
+  }
+
+};
 
 
 
@@ -468,4 +699,5 @@ const downloadPDF = async (req, res) => {
 };
 
 
-module.exports = { getQuotations, getQuotation, createQuotation, updateQuotation, updateStatus, deleteQuotation, downloadPDF };
+module.exports = { getQuotations, getQuotation, createQuotation, updateQuotation, updateStatus, deleteQuotation, downloadPDF ,  sendQuotationEmail,
+  sendQuotationWhatsApp };

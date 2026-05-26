@@ -159,53 +159,150 @@ const createLead = async (req, res) => {
 
 // PUT update lead (full update — also handles status change to won)
 const updateLead = async (req, res) => {
+
   try {
+
     const prevLead = await Lead.findById(req.params.id);
-    if (!prevLead) return res.status(404).json({ success: false, message: 'Lead not found' });
+
+    if (!prevLead) {
+
+      return res.status(404).json({
+        success: false,
+        message: 'Lead not found'
+      });
+
+    }
 
     const prevStatus = prevLead.leadStatus;
 
-    const lead = await Lead.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    ).populate('assignedTo', 'name phone');
+    // SAVE REMARK AS NEW NOTE
+    // CLIENT REQUIREMENT:
+    // every update should become new log
 
-    if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+    if (
+      req.body.remarks &&
+      req.body.remarks.trim()
+    ) {
 
-    // Auto-create customer if status changed to won
-    if (lead.leadStatus === 'won' && prevStatus !== 'won') {
-      await autoCreateCustomer(lead);
+      prevLead.notes.push({
+        text: req.body.remarks.trim(),
+        createdAt: new Date()
+      });
+
     }
 
-    // Log field changes
+    // UPDATE MAIN LEAD FIELDS
+
+    prevLead.leadName =
+      req.body.leadName || prevLead.leadName;
+
+    prevLead.phone =
+      req.body.phone || prevLead.phone;
+
+    prevLead.email =
+      req.body.email || prevLead.email;
+
+    prevLead.company =
+      req.body.company || prevLead.company;
+
+    prevLead.leadSource =
+      req.body.leadSource || prevLead.leadSource;
+
+    prevLead.category =
+      req.body.category || prevLead.category;
+
+    prevLead.leadStatus =
+      req.body.leadStatus || prevLead.leadStatus;
+
+    prevLead.assignedTo =
+      req.body.assignedTo || prevLead.assignedTo;
+
+    prevLead.followUpDate =
+      req.body.followUpDate || null;
+
+    prevLead.expectedValue =
+      req.body.expectedValue || 0;
+
+    await prevLead.save();
+
+    // AUTO CUSTOMER CREATE
+
+    if (
+      prevLead.leadStatus === 'won' &&
+      prevStatus !== 'won'
+    ) {
+
+      await autoCreateCustomer(prevLead);
+
+    }
+
+    // ACTIVITY LOG
+
     const changes = [];
-    if (req.body.leadStatus && req.body.leadStatus !== prevStatus) {
-      changes.push(`Status changed from "${prevStatus}" to "${req.body.leadStatus}"`);
-    }
-    if (req.body.leadName) changes.push(`Name updated to "${req.body.leadName}"`);
-    if (req.body.followUpDate) changes.push(`Follow-up date set to ${new Date(req.body.followUpDate).toLocaleDateString('en-IN')}`);
-    if (req.body.assignedTo) changes.push(`Assigned to updated`);
-    if (req.body.remarks !== undefined && req.body.remarks !== prevLead.remarks) {
-      const newRemarkText = String(req.body.remarks).trim();
-      const prevRemarkText = String(prevLead.remarks || '').trim();
-      if (newRemarkText.length > prevRemarkText.length) {
-        const addedText = newRemarkText.slice(prevRemarkText.length).trim();
-        changes.push(`Remark added: "${addedText.slice(0, 120)}${addedText.length > 120 ? '…' : ''}"`);
-      } else {
-        changes.push('Remarks updated');
-      }
-    }
-    if (req.body.expectedValue) changes.push(`Expected value updated to ₹${Number(req.body.expectedValue).toLocaleString('en-IN')}`);
-    if (changes.length > 0 && !req.body.skipActivityLog) {
 
-      await logActivity(lead._id, 'Lead Updated', changes.join(' | '), req.user?.name || 'Admin');
+    if (
+      req.body.leadStatus &&
+      req.body.leadStatus !== prevStatus
+    ) {
+
+      changes.push(
+        `Status changed from "${prevStatus}" to "${req.body.leadStatus}"`
+      );
+
     }
 
+    if (req.body.followUpDate) {
 
-    return res.json({ success: true, data: lead });
+      changes.push(
+        `Follow-up date updated`
+      );
+
+    }
+
+    if (
+      req.body.remarks &&
+      req.body.remarks.trim()
+    ) {
+
+      changes.push(
+        `New follow-up remark added`
+      );
+
+    }
+
+    if (
+      changes.length > 0 &&
+      !req.body.skipActivityLog
+    ) {
+
+      await logActivity(
+        prevLead._id,
+        'Lead Updated',
+        changes.join(' | '),
+        req.user?.name || 'Admin'
+      );
+
+    }
+
+    const updatedLead =
+      await Lead.findById(prevLead._id)
+        .populate(
+          'assignedTo',
+          'name phone'
+        );
+
+    return res.json({
+      success: true,
+      data: updatedLead
+    });
+
   } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
+
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
+
   }
 };
 

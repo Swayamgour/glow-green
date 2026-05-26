@@ -238,7 +238,8 @@ function Leads() {
         assignedTo: lead.assignedTo?._id || '',
         followUpDate: lead.followUpDate ? lead.followUpDate.split('T')[0] : '',
         expectedValue: lead.expectedValue || '',
-        remarks: lead.remarks || '',
+        // remarks: lead.remarks || '',
+        remarks: '',
       });
     } else {
       setEditLead(null);
@@ -247,36 +248,131 @@ function Leads() {
     setShowForm(true);
   };
 
-  const handleSave = async () => {
-    const phoneRegex = /^[0-9]{10}$/;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  // const handleSave = async () => {
+  //   const phoneRegex = /^[0-9]{10}$/;
+  //   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!form.leadName || form.leadName.trim().length < 2)
-      return showToast('Lead name must be at least 2 characters', 'error');
-    if (!form.phone || !phoneRegex.test(form.phone))
-      return showToast('Phone must be exactly 10 digits', 'error');
-    if (form.email && !emailRegex.test(form.email))
-      return showToast('Please enter a valid email address', 'error');
+  //   if (!form.leadName || form.leadName.trim().length < 2)
+  //     return showToast('Lead name must be at least 2 characters', 'error');
+  //   if (!form.phone || !phoneRegex.test(form.phone))
+  //     return showToast('Phone must be exactly 10 digits', 'error');
+  //   if (form.email && !emailRegex.test(form.email))
+  //     return showToast('Please enter a valid email address', 'error');
+
+  //   try {
+  //     const payload = { ...form };
+  //     if (!payload.assignedTo) delete payload.assignedTo;
+  //     if (!payload.followUpDate) delete payload.followUpDate;
+
+  //     if (editLead) {
+  //       await updateLead({ id: editLead._id, ...payload }).unwrap();
+  //       showToast('Lead updated');
+  //     } else {
+  //       await createLead(payload).unwrap();
+  //       showToast('Lead added');
+  //     }
+  //     setShowForm(false);
+  //     setEditLead(null);
+  //     setForm(emptyForm);
+  //     refetchLeads();
+  //     refetchAllLeads();
+  //   } catch (err) {
+  //     showToast(err.data?.message || err.message || 'Failed to save', 'error');
+  //   }
+  // };
+
+
+  const handleSave = async () => {
+
+    const phoneRegex = /^[0-9]{10}$/;
+
+    if (
+      !form.leadName ||
+      form.leadName.trim().length < 2
+    ) {
+
+      return showToast(
+        'Lead name required',
+        'error'
+      );
+
+    }
+
+    if (
+      !form.phone ||
+      !phoneRegex.test(form.phone)
+    ) {
+
+      return showToast(
+        'Phone must be 10 digits',
+        'error'
+      );
+
+    }
 
     try {
-      const payload = { ...form };
-      if (!payload.assignedTo) delete payload.assignedTo;
-      if (!payload.followUpDate) delete payload.followUpDate;
+
+      setSaving(true);
+
+      const payload = {
+        ...form
+      };
+
+      // REMOVE EMPTY VALUES
+
+      if (!payload.assignedTo) {
+        delete payload.assignedTo;
+      }
+
+      if (!payload.followUpDate) {
+        delete payload.followUpDate;
+      }
 
       if (editLead) {
-        await updateLead({ id: editLead._id, ...payload }).unwrap();
+
+        await updateLead({
+          id: editLead._id,
+          ...payload
+        }).unwrap();
+
         showToast('Lead updated');
+
       } else {
+
         await createLead(payload).unwrap();
+
         showToast('Lead added');
+
       }
+
+      // IMPORTANT CLIENT REQUIREMENT
+      // next follow-up remarks blank
+
+      setForm({
+        ...emptyForm,
+        remarks: ''
+      });
+
       setShowForm(false);
+
       setEditLead(null);
-      setForm(emptyForm);
+
       refetchLeads();
+
       refetchAllLeads();
+
     } catch (err) {
-      showToast(err.data?.message || err.message || 'Failed to save', 'error');
+
+      showToast(
+        err.data?.message ||
+        'Save failed',
+        'error'
+      );
+
+    } finally {
+
+      setSaving(false);
+
     }
   };
 
@@ -939,7 +1035,7 @@ function Leads() {
               </div>
             </div>
 
-              {/* <button className="leads-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button> */}
+            {/* <button className="leads-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button> */}
             {/* <div className="leads-modal-foot">
               <button className="leads-btn-primary" onClick={handleSave} disabled={saving}>
                 {saving && <span className="leads-spinner" />}
@@ -1101,8 +1197,8 @@ function Leads() {
               {activeViewTab === "history" &&
                 <>
                   <div className="leads-notes-section" style={{ marginBottom: 16 }}>
-                    <h4>📋 Activity Timeline <span>({viewLead.activityLog?.length || 0})</span></h4>
-                    <div className="leads-notes-list">
+                    <h4>📋 Lead Activity & Follow-up Timeline <span>({viewLead.activityLog?.length || 0})</span></h4>
+                    <div className="leads-history-grid">
                       {(!viewLead.activityLog || viewLead.activityLog.length === 0) && (
                         <p className="leads-no-notes">No activity recorded yet.</p>
                       )}
@@ -1132,7 +1228,12 @@ function Leads() {
                       )}
                       {[...(viewLead.notes || [])].reverse().map((note) => (
                         <div key={note._id} className="leads-note-item">
-                          <div className="leads-note-text">{note.text}</div>
+                          {/* <div className="leads-note-text">{note.text}</div> */}
+                          <div className="leads-note-text">
+                            {note.text.length > 120
+                              ? `${note.text.slice(0, 120)}...`
+                              : note.text}
+                          </div>
                           <div className="leads-note-meta">
                             <span className="leads-note-time">
                               🕐 {formatDateTime(note.createdAt)}

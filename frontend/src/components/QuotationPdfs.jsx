@@ -32,7 +32,7 @@ export default function QuotationPdfs({ quotation }) {
             <table className="price-table">
                 <thead>
                     <tr>
-                        <th>Picture</th>
+                        {/* <th>Picture</th> */}
                         <th>Product Code</th>
                         <th>Series</th>
                         <th>Wattage</th>
@@ -50,14 +50,14 @@ export default function QuotationPdfs({ quotation }) {
                         <tr key={i}>
 
                             {/* image only once */}
-                            {i === 0 && (
+                            {/* {i === 0 && (
                                 <td rowSpan={data.length} className="img-cell">
                                     <img
                                         src={quotation?.image || "https://via.placeholder.com/120"}
                                         alt="product"
                                     />
                                 </td>
-                            )}
+                            )} */}
 
                             <td>{item.code}</td>
                             <td>{quotation?.series || "-"}</td>

@@ -7,7 +7,9 @@ import {
   useUpdateQuotationStatusMutation,
   useGetExecutivesQuery,
   useGetCustomersQuery,
-  useGetProductsQuery
+  useGetProductsQuery,
+  useSendQuotationEmailMutation,
+  useSendQuotationWhatsAppMutation
 } from '../Redux/api';
 import html2pdf from 'html2pdf.js';
 import './Quotations.css';
@@ -42,6 +44,11 @@ const emptyItem = {
   hsnCode: '',
   image: '',
   category: '',
+  type: '',
+  category1: '',
+  category2: '',
+  category3: '',
+  brandName: '',
   wattage: '',
   length: '',
   breadth: '',
@@ -52,7 +59,7 @@ const emptyItem = {
   unit: 'pcs',
   rate: 0,
   amount: 0,
-  isPriceEdited: false // Track if price was manually edited
+  isPriceEdited: false
 };
 
 const emptyForm = {
@@ -90,16 +97,14 @@ export default function Quotations() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
-  const [editingPriceFor, setEditingPriceFor] = useState(null); // Track which item is being edited
+  const [editingPriceFor, setEditingPriceFor] = useState(null);
 
   const pdfContentRef = useRef();
 
-  // Build query params
   const queryParams = {};
   if (search) queryParams.search = search;
   if (filterStatus) queryParams.status = filterStatus;
 
-  // RTK Query hooks
   const {
     data: quotationsData = [],
     isLoading: loading,
@@ -115,6 +120,9 @@ export default function Quotations() {
   const [deleteQuotation] = useDeleteQuotationMutation();
   const [updateQuotationStatus] = useUpdateQuotationStatusMutation();
 
+  const [sendQuotationEmail] = useSendQuotationEmailMutation();
+  const [sendQuotationWhatsApp] = useSendQuotationWhatsAppMutation();
+
   const quotations = quotationsData;
   const executives = executivesData;
   const customers = customersData || [];
@@ -125,18 +133,50 @@ export default function Quotations() {
     setTimeout(() => setToast(null), 3200);
   };
 
-  // Helper function to get master price from product
   const getMasterPrice = (productId) => {
     const product = products.find(p => p._id === productId);
     if (!product) return 0;
 
-    // Try multiple possible price fields
-    const price = Number(product.price) ||
-      Number(product.masterPrice) ||
-      Number(product.sellingPrice) ||
-      Number(product.fmDetails?.masterPrice) ||
-      Number(product.rate) || 0;
-    return price;
+    if (product.type === 'RM' && product.rmDetails) {
+      const rmPrice = product.rmDetails.masterPrice;
+      if (rmPrice && !isNaN(Number(rmPrice)) && Number(rmPrice) > 0) {
+        return Number(rmPrice);
+      }
+    }
+
+    if (product.type === 'FM' && product.fmDetails) {
+      const fmPrice = product.fmDetails.fgCost;
+      if (fmPrice && !isNaN(Number(fmPrice)) && Number(fmPrice) > 0) {
+        return Number(fmPrice);
+      }
+    }
+
+    const mainPrice = product.price;
+    if (mainPrice && !isNaN(Number(mainPrice)) && Number(mainPrice) > 0) {
+      return Number(mainPrice);
+    }
+
+    return 0;
+  };
+
+  const getProductCategories = (product) => {
+    const categories = [];
+
+    if (product.type === 'FM' && product.fmDetails) {
+      const fm = product.fmDetails;
+      if (fm.category1) categories.push({ label: 'Series', value: fm.category1 });
+      if (fm.category2) categories.push({ label: 'Type', value: fm.category2 });
+      if (fm.brandName) categories.push({ label: 'Brand', value: fm.brandName });
+    }
+
+    if (product.type === 'RM' && product.rmDetails) {
+      const rm = product.rmDetails;
+      if (rm.category1) categories.push({ label: 'Category 1', value: rm.category1 });
+      if (rm.category2) categories.push({ label: 'Category 2', value: rm.category2 });
+      if (rm.category3) categories.push({ label: 'Category 3', value: rm.category3 });
+    }
+
+    return categories;
   };
 
   const calcTotals = (items, discountType, discountValue, taxType, taxRate) => {
@@ -157,7 +197,7 @@ export default function Quotations() {
       if (i !== idx) return it;
       const updated = { ...it, [field]: value };
       if (field === 'rate') {
-        updated.isPriceEdited = true; // Mark as edited when rate changes
+        updated.isPriceEdited = true;
       }
       if (field === 'quantity' || field === 'rate') {
         updated.amount = (Number(updated.quantity) || 0) * (Number(updated.rate) || 0);
@@ -167,7 +207,45 @@ export default function Quotations() {
     setForm(f => ({ ...f, items }));
   };
 
-  const addItem = () => setForm(f => ({ ...f, items: [...f.items, { ...emptyItem }] }));
+  const addItem = () => {
+
+    const lastItem =
+      form.items[form.items.length - 1];
+
+    const isIncomplete =
+
+      (
+        !lastItem.productId &&
+        !lastItem.description?.trim()
+      ) ||
+
+      !lastItem.quantity ||
+
+      !lastItem.rate;
+
+    if (isIncomplete) {
+
+      showToast(
+        'Please complete current item before adding new one',
+        'warning'
+      );
+
+      return;
+
+    }
+
+    setForm(f => ({
+
+      ...f,
+
+      items: [
+        ...f.items,
+        { ...emptyItem }
+      ]
+
+    }));
+
+  };
   const removeItem = (idx) => setForm(f => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
 
   const handleNew = () => {
@@ -222,22 +300,28 @@ export default function Quotations() {
     const masterPrice = getMasterPrice(productId);
     const items = [...form.items];
     const currentItem = items[index];
+    const categories = getProductCategories(product);
+
+    let enhancedDescription = product.name || '';
+    if (categories.length > 0) {
+      const catStr = categories.map(c => `${c.label}: ${c.value}`).join(' | ');
+      enhancedDescription += ` (${catStr})`;
+    }
 
     items[index] = {
       ...items[index],
       productId: product._id,
-      description: product.name || '',
+      description: enhancedDescription,
       productCode: product.code || product.productCode || '',
       hsnCode: product.hsn || product.hsnCode || '',
       category: product.category || '',
-      wattage: product.wattage || '',
-      length: product.length || '',
-      breadth: product.breadth || '',
-      height: product.height || '',
-      weight: product.weight || '',
-      surge: product.surge || '',
-      rate: currentItem.isPriceEdited ? currentItem.rate : masterPrice, // Keep edited price if already edited
+      type: product.type || '',
+      category1: product.fmDetails?.category1 || product.rmDetails?.category1 || '',
+      category2: product.fmDetails?.category2 || product.rmDetails?.category2 || '',
+      category3: product.fmDetails?.category3 || product.rmDetails?.category3 || '',
+      brandName: product.fmDetails?.brandName || '',
       quantity: currentItem.quantity || 1,
+      rate: currentItem.isPriceEdited ? currentItem.rate : masterPrice,
       amount: (currentItem.quantity || 1) * (currentItem.isPriceEdited ? currentItem.rate : masterPrice),
       isPriceEdited: currentItem.isPriceEdited || false
     };
@@ -250,11 +334,11 @@ export default function Quotations() {
     if (masterPrice === 0 && !currentItem.isPriceEdited) {
       showToast(`⚠️ Product "${product.name}" has no master price. Please enter price manually.`, 'warning');
     } else if (!currentItem.isPriceEdited) {
-      showToast(`✓ Product added with master price: ₹${masterPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 'success');
+      const priceSource = product.type === 'RM' ? 'RM Master Price' : (product.type === 'FM' ? 'FG Cost' : 'Product Price');
+      showToast(`✓ Product added with ${priceSource}: ₹${masterPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 'success');
     }
   };
 
-  // Handle manual price editing
   const handlePriceEdit = (idx, newPrice) => {
     if (newPrice !== null && !isNaN(newPrice) && newPrice >= 0) {
       setItem(idx, 'rate', parseFloat(newPrice));
@@ -263,7 +347,6 @@ export default function Quotations() {
     }
   };
 
-  // Reset to master price
   const handleResetToMasterPrice = (idx) => {
     const item = form.items[idx];
     if (!item.productId) {
@@ -281,17 +364,14 @@ export default function Quotations() {
   };
 
   const handleSave = async () => {
-    // Customer Validation
     if (!form.customerName) {
       return showToast('Customer name is required', 'error');
     }
 
-    // Items Validation
     if (!form.items?.length) {
       return showToast('Add at least one item', 'error');
     }
 
-    // Check valid item
     const hasValidItem = form.items.some(
       (item) => item.description || item.productId
     );
@@ -300,7 +380,6 @@ export default function Quotations() {
       return showToast('Add at least one item', 'error');
     }
 
-    // Check price for all items
     const hasInvalidPrice = form.items.some(
       (item) =>
         (item.description || item.productId) &&
@@ -373,7 +452,6 @@ export default function Quotations() {
     }
   };
 
-  // Generate PDF and return as blob
   const generatePDFBlob = async (quotation) => {
     try {
       const element = pdfContentRef.current;
@@ -394,75 +472,22 @@ export default function Quotations() {
     }
   };
 
-  // Email functionality
   const handleSendEmail = async (quotation) => {
-    if (!quotation.customerEmail) {
-      showToast('Customer email is required to send quotation', 'error');
-      return;
-    }
-
     setSendingEmail(true);
     try {
-      const pdfBlob = await generatePDFBlob(quotation);
-      if (!pdfBlob) {
-        showToast('Failed to generate PDF', 'error');
-        return;
-      }
-
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-      const subject = `Quotation ${quotation.quotationNo} from Your Company Name`;
-      const body = `Dear ${quotation.customerName},
-
-Thank you for your interest in our products/services.
-
-Please find attached our quotation (${quotation.quotationNo}) for your reference.
-
-Quotation Details:
-- Quotation Number: ${quotation.quotationNo}
-- Date: ${new Date(quotation.date).toLocaleDateString()}
-- Valid Till: ${quotation.validTill ? new Date(quotation.validTill).toLocaleDateString() : 'N/A'}
-- Grand Total: ₹${Number(quotation.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-
-For any clarification, please feel free to contact us.
-
-Best regards,
-${quotation.preparedBy?.name || 'Sales Team'}
-Your Company Name
-Phone: Your Phone Number
-Email: your.email@company.com
-
-Note: This is an automatically generated email. Please do not reply directly.`;
-
-      const mailtoLink = `mailto:${quotation.customerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailtoLink;
-
-      const downloadLink = document.createElement('a');
-      downloadLink.href = pdfUrl;
-      downloadLink.download = `${quotation.quotationNo}_${quotation.customerName}.pdf`;
-
-      setTimeout(() => {
-        if (confirm('Email client opened. If attachment doesn\'t work automatically, click OK to download PDF for manual attachment.')) {
-          downloadLink.click();
-        }
-        URL.revokeObjectURL(pdfUrl);
-      }, 1000);
-
-      showToast('Opening email client... Please attach the downloaded PDF manually if needed', 'success');
-
-      if (quotation.status === 'draft') {
-        await updateQuotationStatus({ id: quotation._id, status: 'sent' }).unwrap();
-        refetchQuotations();
-      }
+      await sendQuotationEmail({ id: quotation._id }).unwrap();
+      showToast('Email sent successfully');
     } catch (err) {
       console.error('Email error:', err);
       showToast('Failed to send email', 'error');
     } finally {
       setSendingEmail(false);
     }
-  };
+  }
 
-  // WhatsApp functionality
+
   const handleSendWhatsApp = async (quotation) => {
+    console.log(quotation);
     if (!quotation.customerPhone) {
       showToast('Customer phone number is required to send via WhatsApp', 'error');
       return;
@@ -577,7 +602,6 @@ _This is an automated message. Please save the attachment for your records._`;
     accepted: quotations.filter(q => q.status === 'accepted').length,
   };
 
-  // Loading state
   if (loading && quotations.length === 0 && view === 'list') {
     return (
       <div className="qt-page">
@@ -596,7 +620,6 @@ _This is an automated message. Please save the attachment for your records._`;
     );
   }
 
-  // FORM VIEW
   if (view === 'form') return (
     <div className="qt-page">
       {toast && <div className={`qt-toast qt-toast-${toast.type}`}>{toast.type === 'success' ? '✓' : '✕'} {toast.msg}</div>}
@@ -614,9 +637,7 @@ _This is an automated message. Please save the attachment for your records._`;
       </div>
 
       <div className="qt-form-grid">
-        {/* LEFT COLUMN */}
         <div className="qt-form-left">
-          {/* Quotation Info */}
           <div className="qt-section">
             <h4 className="qt-section-title">📋 Quotation Details</h4>
             <div className="qt-form-row3">
@@ -652,7 +673,6 @@ _This is an automated message. Please save the attachment for your records._`;
             </div>
           </div>
 
-          {/* Customer */}
           <div className="qt-section">
             <h4 className="qt-section-title">👤 Customer / Bill To</h4>
             <div className="qt-form-row2">
@@ -695,7 +715,6 @@ _This is an automated message. Please save the attachment for your records._`;
             </div>
           </div>
 
-          {/* Terms & Notes */}
           <div className="qt-section">
             <h4 className="qt-section-title">📝 Terms & Notes</h4>
             <div className="qt-fg full">
@@ -711,175 +730,290 @@ _This is an automated message. Please save the attachment for your records._`;
           </div>
         </div>
 
-        {/* RIGHT COLUMN */}
         <div className="qt-form-right">
-          {/* Items */}
+          {/* Items Section - Improved UI */}
           <div className="qt-section">
             <div className="qt-section-head">
-              <h4 className="qt-section-title">📦 Line Items</h4>
-              <button className="qt-add-item-btn" onClick={addItem}>+ Add Item</button>
+              <h4 className="qt-section-title">
+                <span>📦</span> Line Items
+              </h4>
+              <button className="qt-add-item-btn" onClick={addItem}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add Item
+              </button>
             </div>
 
             <div className="qt-items-table-wrap">
               <table className="qt-items-table">
                 <thead>
                   <tr>
-                    <th style={{ width: 28 }}>#</th>
-                    <th>Product / Description</th>
-                    <th style={{ width: 70 }}>HSN</th>
-                    <th style={{ width: 55 }}>Qty</th>
-                    <th style={{ width: 65 }}>Unit</th>
-                    <th style={{ width: 160 }}>Price (₹)</th>
-                    <th style={{ width: 90 }}>Amount (₹)</th>
-                    <th style={{ width: 28 }}></th>
+                    <th style={{ width: 40 }}>#</th>
+                    <th>Product Details</th>
+                    <th style={{ width: 80 }}>HSN</th>
+                    <th style={{ width: 70 }}>Qty</th>
+                    <th style={{ width: 80 }}>Unit</th>
+                    <th style={{ width: 150 }}>Price (₹)</th>
+                    <th style={{ width: 100 }}>Amount (₹)</th>
+                    <th style={{ width: 40 }}></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {form.items.map((item, idx) => (
-                    <tr key={idx}>
-                      <td className="qt-sr">{idx + 1}</td>
-                      <td>
-                        <select
-                          className="qt-item-select"
-                          value={item.productId || ''}
-                          onChange={(e) => handleProductSelect(idx, e.target.value)}
-                        >
-                          <option value="">-- Select Product (Auto-fills details) --</option>
-                          {products.map((p) => (
-                            <option key={p._id} value={p._id}>
-                              {p.name} {p.code && `(${p.code})`} - ₹{getMasterPrice(p._id).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                            </option>
-                          ))}
-                        </select>
-                        <div style={{ marginTop: '8px', borderTop: '1px dashed #e5e7eb', paddingTop: '8px' }}>
-                          <input
-                            className="qt-item-input"
-                            type="text"
-                            placeholder="Or type product description manually"
-                            value={item.description}
-                            onChange={e => setItem(idx, 'description', e.target.value)}
-                          />
-                        </div>
-                      </td>
-                      <td>
-                        <input className="qt-item-input center" type="text" placeholder="HSN"
-                          value={item.hsnCode} onChange={e => setItem(idx, 'hsnCode', e.target.value)} />
-                      </td>
-                      <td>
-                        <input className="qt-item-input center" type="number" min="0" step="1" placeholder="Qty"
-                          value={item.quantity} onChange={e => setItem(idx, 'quantity', e.target.value)} />
-                      </td>
-                      <td>
-                        <select className="qt-item-select"
-                          value={item.unit} onChange={e => setItem(idx, 'unit', e.target.value)}>
-                          {UNITS.map(u => <option key={u}>{u}</option>)}
-                        </select>
-                      </td>
-                      <td className="qt-price-cell">
-                        {editingPriceFor === idx ? (
-                          <div className="qt-price-edit-popup">
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              defaultValue={item.rate}
-                              autoFocus
-                              className="qt-price-edit-input"
-                              onKeyPress={(e) => {
-                                if (e.key === 'Enter') {
-                                  handlePriceEdit(idx, parseFloat(e.target.value));
+                  {form.items.map((item, idx) => {
+                    const productInfo = item.productId ? products.find(p => p._id === item.productId) : null;
+                    const categories = productInfo ? getProductCategories(productInfo) : [];
+
+                    return (
+                      <tr key={idx} className="qt-item-row">
+                        <td className="qt-sr">{idx + 1}</td>
+                        <td className="qt-product-cell">
+                          <select
+                            className="qt-product-select"
+                            value={item.productId || ''}
+                            onChange={(e) => handleProductSelect(idx, e.target.value)}
+                          >
+                            {console.log(products)}
+                            <option value="">-- Select Product --</option>
+                            {products
+                              .filter((p) => {
+
+                                // ALLOW CURRENT SELECTED PRODUCT
+
+                                if (item.productId === p._id) {
+                                  return true;
                                 }
-                              }}
-                              id={`price-input-${idx}`}
-                            />
-                            <div className="qt-price-edit-actions">
-                              <button
-                                className="qt-price-edit-save"
-                                onClick={() => {
-                                  const input = document.getElementById(`price-input-${idx}`);
-                                  handlePriceEdit(idx, parseFloat(input.value));
-                                }}
-                              >
-                                ✓ Save
-                              </button>
-                              <button
-                                className="qt-price-edit-cancel"
-                                onClick={() => setEditingPriceFor(null)}
-                              >
-                                ✕ Cancel
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="qt-price-display">
-                            <div className="qt-price-main">
-                              <strong className={item.isPriceEdited ? 'qt-price-edited' : 'qt-price-master'}>
-                                {fmt(item.rate)}
-                              </strong>
-                              {item.productId && (
-                                <span className="qt-price-badge">
-                                  {item.isPriceEdited ? '✏️ Edited' : '📦 Master'}
+
+                                // PREVENT DUPLICATE PRODUCT SELECTION
+
+                                return !form.items.some(
+                                  (selectedItem) =>
+                                    selectedItem.productId === p._id
+                                );
+
+                              })
+                              .map((p) => {
+                                let displayPrice = 0;
+                                let priceSource = '';
+
+                                if (p.type === 'RM' && p.rmDetails?.masterPrice) {
+                                  displayPrice = p.rmDetails.masterPrice;
+                                  priceSource = 'RM';
+                                } else if (p.type === 'FM' && p.fmDetails?.fgCost) {
+                                  displayPrice = p.fmDetails.fgCost;
+                                  priceSource = 'FG';
+                                } else if (p.price) {
+                                  displayPrice = p.price;
+                                  priceSource = '';
+                                }
+
+                                return (
+                                  <option key={p._id} value={p._id}>
+                                    {p.name} {p.code && `(${p.code})`}
+                                    {displayPrice > 0 ? ` - ₹${displayPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : ' - Price N/A'}
+                                    {priceSource && ` [${priceSource}]`}
+                                  </option>
+                                );
+                              })}
+                          </select>
+
+                          {/* Category Tags */}
+                          {console.log(categories)}
+                          {categories.length > 0 && (
+                            <div className="qt-category-tags">
+
+                              <span className="qt-category-tag">
+                                {item.type}
+                              </span>
+                              {categories.map((cat, catIdx) => (
+                                <span key={catIdx} className="qt-category-tag">
+                                  {cat.label}: {cat.value}
                                 </span>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="qt-manual-desc">
+                            <input
+                              className="qt-item-input"
+                              type="text"
+                              placeholder="Or type product description manually"
+                              value={item.description}
+                              onChange={e => setItem(idx, 'description', e.target.value)}
+                            />
+                          </div>
+                        </td>
+                        <td>
+                          <input
+                            className="qt-item-input center"
+                            type="text"
+                            placeholder="HSN"
+                            value={item.hsnCode}
+                            onChange={e => setItem(idx, 'hsnCode', e.target.value)}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="qt-item-input center qty-input"
+                            type="number"
+                            min="0"
+                            step="1"
+                            placeholder="Qty"
+                            value={item.quantity}
+                            onChange={e => setItem(idx, 'quantity', e.target.value)}
+                          />
+                        </td>
+                        <td>
+                          <select
+                            className="qt-item-select"
+                            value={item.unit}
+                            onChange={e => setItem(idx, 'unit', e.target.value)}>
+                            {UNITS.map(u => <option key={u}>{u}</option>)}
+                          </select>
+                        </td>
+                        <td className="qt-price-cell">
+                          {editingPriceFor === idx ? (
+                            <div className="qt-price-edit-popup">
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                defaultValue={item.rate}
+                                autoFocus
+                                className="qt-price-edit-input"
+                                onKeyPress={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handlePriceEdit(idx, parseFloat(e.target.value));
+                                  }
+                                }}
+                                id={`price-input-${idx}`}
+                              />
+                              <div className="qt-price-edit-actions">
+                                <button
+                                  className="qt-price-edit-save"
+                                  onClick={() => {
+                                    const input = document.getElementById(`price-input-${idx}`);
+                                    handlePriceEdit(idx, parseFloat(input.value));
+                                  }}
+                                >
+                                  ✓ Save
+                                </button>
+                                <button
+                                  className="qt-price-edit-cancel"
+                                  onClick={() => setEditingPriceFor(null)}
+                                >
+                                  ✕ Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="qt-price-display">
+                              <div className="qt-price-input-wrapper">
+                                <span className="qt-currency-symbol">₹</span>
+                                <input
+                                  type="number"
+                                  className="qt-price-input-field"
+                                  value={item.rate}
+                                  onChange={(e) => handlePriceEdit(idx, parseFloat(e.target.value))}
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="0.00"
+                                />
+                              </div>
+                              {item.productId && (
+                                <div className="qt-price-meta">
+                                  <span className={`qt-price-badge ${item.isPriceEdited ? 'edited' : 'master'}`}>
+                                    {item.isPriceEdited ? '✏️ Custom' : '📦 Master'}
+                                  </span>
+                                  {!item.isPriceEdited && getMasterPrice(item.productId) > 0 && (
+                                    <button
+                                      className="qt-price-edit-icon"
+                                      onClick={() => setEditingPriceFor(idx)}
+                                      title="Edit Price"
+                                    >
+                                      ✏️
+                                    </button>
+                                  )}
+                                  {item.isPriceEdited && (
+                                    <button
+                                      className="qt-price-reset-icon"
+                                      onClick={() => handleResetToMasterPrice(idx)}
+                                      title="Reset to Master Price"
+                                    >
+                                      🔄
+                                    </button>
+                                  )}
+                                </div>
                               )}
                               {!item.productId && (
-                                <span className="qt-price-badge manual">✏️ Manual</span>
+                                <div className="qt-price-meta">
+                                  <span className="qt-price-badge manual">✏️ Manual Entry</span>
+                                </div>
+                              )}
+                              {item.productId && getMasterPrice(item.productId) > 0 && item.rate !== getMasterPrice(item.productId) && (
+                                <div className="qt-price-info">
+                                  <small>Master: {fmt(getMasterPrice(item.productId))}</small>
+                                </div>
                               )}
                             </div>
-                            <div className="qt-price-actions">
-                              <button
-                                className="qt-price-edit-btn"
-                                onClick={() => setEditingPriceFor(idx)}
-                                title="Edit Price"
-                              >
-                                ✏️ Edit
-                              </button>
-                              {item.productId && item.isPriceEdited && (
-                                <button
-                                  className="qt-price-reset-btn"
-                                  onClick={() => handleResetToMasterPrice(idx)}
-                                  title="Reset to Master Price"
-                                >
-                                  🔄 Reset
-                                </button>
-                              )}
-                            </div>
-                            {item.productId && getMasterPrice(item.productId) > 0 && item.rate !== getMasterPrice(item.productId) && (
-                              <div className="qt-price-info">
-                                <small>Master: {fmt(getMasterPrice(item.productId))}</small>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      <td className="qt-item-amount">{fmt(item.quantity * item.rate)}</td>
-                      <td>
-                        {form.items.length > 1 && (
-                          <button className="qt-remove-item" onClick={() => removeItem(idx)}>✕</button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                          )}
+                        </td>
+                        <td className="qt-item-amount">{fmt(item.quantity * item.rate)}</td>
+                        <td>
+                          {form.items.length > 1 && (
+                            <button className="qt-remove-item" onClick={() => removeItem(idx)} title="Remove item">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                              </svg>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           </div>
 
-          {/* Tax & Discount */}
           <div className="qt-section">
             <h4 className="qt-section-title">🧮 Tax & Discount</h4>
             <div className="qt-form-row2">
               <div className="qt-fg">
                 <label>Discount Type</label>
-                <select value={form.discountType} onChange={e => setForm(f => ({ ...f, discountType: e.target.value }))}>
-                  <option value="percent">Percentage (%)</option>
-                  <option value="fixed">Fixed Amount (₹)</option>
-                </select>
+                <div className="qt-discount-toggle">
+                  <button
+                    type="button"
+                    className={`qt-toggle-btn ${form.discountType === 'percent' ? 'active' : ''}`}
+                    onClick={() => setForm(f => ({ ...f, discountType: 'percent' }))}
+                  >
+                    Percentage (%)
+                  </button>
+                  <button
+                    type="button"
+                    className={`qt-toggle-btn ${form.discountType === 'fixed' ? 'active' : ''}`}
+                    onClick={() => setForm(f => ({ ...f, discountType: 'fixed' }))}
+                  >
+                    Fixed Amount (₹)
+                  </button>
+                </div>
               </div>
               <div className="qt-fg">
                 <label>Discount Value</label>
-                <input type="number" min="0" placeholder="0"
-                  value={form.discountValue}
-                  onChange={e => setForm(f => ({ ...f, discountValue: e.target.value }))} />
+                <div className="qt-discount-input">
+                  <span className="qt-discount-symbol">
+                    {form.discountType === 'percent' ? '%' : '₹'}
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={form.discountValue}
+                    onChange={e => setForm(f => ({ ...f, discountValue: e.target.value }))}
+                  />
+                </div>
               </div>
             </div>
             <div className="qt-form-row2">
@@ -891,22 +1025,27 @@ _This is an automated message. Please save the attachment for your records._`;
               </div>
               <div className="qt-fg">
                 <label>Tax Rate (%)</label>
-                <select value={form.taxRate} onChange={e => setForm(f => ({ ...f, taxRate: e.target.value }))}
-                  disabled={form.taxType === 'none'}>
+                <select
+                  value={form.taxRate}
+                  onChange={e => setForm(f => ({ ...f, taxRate: e.target.value }))}
+                  disabled={form.taxType === 'none'}
+                  className={form.taxType === 'none' ? 'qt-disabled-select' : ''}
+                >
                   {TAX_RATES.map(r => <option key={r} value={r}>{r}%</option>)}
                 </select>
               </div>
             </div>
           </div>
 
-          {/* Summary */}
           <div className="qt-summary">
             <div className="qt-summary-row">
-              <span>Subtotal</span><span>{fmt(totals.subtotal)}</span>
+              <span>Subtotal</span>
+              <span>{fmt(totals.subtotal)}</span>
             </div>
             {totals.discountAmount > 0 && (
               <div className="qt-summary-row discount">
-                <span>Discount</span><span>- {fmt(totals.discountAmount)}</span>
+                <span>Discount</span>
+                <span>- {fmt(totals.discountAmount)}</span>
               </div>
             )}
             {form.taxType !== 'none' && totals.taxAmount > 0 && (
@@ -916,13 +1055,13 @@ _This is an automated message. Please save the attachment for your records._`;
               </div>
             )}
             <div className="qt-summary-total">
-              <span>Grand Total</span><span>{fmt(totals.grandTotal)}</span>
+              <span>Grand Total</span>
+              <span>{fmt(totals.grandTotal)}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom action */}
       <div className="qt-form-footer">
         <button className="qt-btn-ghost" onClick={() => setView('list')}>Cancel</button>
         <button className="qt-btn-primary" onClick={handleSave} disabled={saving}>
@@ -933,7 +1072,6 @@ _This is an automated message. Please save the attachment for your records._`;
     </div>
   );
 
-  // LIST VIEW
   return (
     <>
       <div className="qt-page">
@@ -1031,46 +1169,26 @@ _This is an automated message. Please save the attachment for your records._`;
                           ))}
                         </select>
                       </td>
-                      <td >
-
+                      <td>
                         <div className="qt-actions">
-
-
                           <button
                             className="qt-action email"
                             onClick={() => handleSendEmail(q)}
                             title="Send Email"
                             disabled={sendingEmail}
-                            style={{
-                              background: '#34a853',
-                              color: 'white'
-                            }}
+                            style={{ background: '#34a853', color: 'white' }}
                           >
-
                             <FaEnvelope size={15} />
-
-                            {/* {sendingEmail ? ' Sending...' : ' Email'} */}
-
                           </button>
-
                           <button
                             className="qt-action whatsapp"
                             onClick={() => handleSendWhatsApp(q)}
                             title="Send WhatsApp"
                             disabled={sendingWhatsApp}
-                            style={{
-                              background: '#25D366',
-                              color: 'white'
-                            }}
+                            style={{ background: '#25D366', color: 'white' }}
                           >
-
                             <FaWhatsapp size={16} />
-
-                            {/* {sendingWhatsApp ? ' Sending...' : ' WhatsApp'} */}
-
                           </button>
-
-
                           <button
                             className="qt-action pdf"
                             onClick={() => handleViewPDF(q)}
@@ -1099,7 +1217,6 @@ _This is an automated message. Please save the attachment for your records._`;
         </div>
       </div>
 
-      {/* PDF Preview Modal */}
       {pdfPreview.show && pdfPreview.quotation && (
         <div className="pdf-preview-overlay" onClick={() => setPdfPreview({ show: false, quotation: null })}>
           <div className="pdf-preview-modal" onClick={e => e.stopPropagation()}>
@@ -1109,11 +1226,9 @@ _This is an automated message. Please save the attachment for your records._`;
               </h3>
               <button className="pdf-preview-close" onClick={() => setPdfPreview({ show: false, quotation: null })}>×</button>
             </div>
-
             <div className="pdf-preview-content" ref={pdfContentRef}>
               <QuotationPdfs quotation={pdfPreview.quotation} />
             </div>
-
             <div className="pdf-preview-footer">
               <button className="pdf-preview-btn primary" onClick={() => generatePDF(pdfPreview.quotation)}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

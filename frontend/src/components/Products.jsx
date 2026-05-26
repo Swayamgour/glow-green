@@ -107,35 +107,75 @@ export default function Products() {
   const [triggerExport] = useLazyExportProductsExcelQuery();
   const [triggerTemplate] = useLazyDownloadProductTemplateQuery();
 
-  const products = (productsData || []).filter((p) => {
+  const products = (productsData || [])
+    .filter((p) => {
 
-    const searchText = search.toLowerCase();
+      const searchText = search
+        ?.trim()
+        .toLowerCase();
 
-    if (!searchText) return true;
+      if (!searchText) return true;
 
-    return (
+      // ALL CATEGORY VALUES
 
-      p.name?.toLowerCase().includes(searchText) ||
+      const categories = [
 
-      p.code?.toLowerCase().includes(searchText) ||
+        // RM
+        p.rmDetails?.category1,
+        p.rmDetails?.category2,
+        p.rmDetails?.category3,
 
-      p.hsn?.toLowerCase().includes(searchText) ||
+        // SM
+        p.smDetails?.category1,
+        p.smDetails?.category2,
+        p.smDetails?.category3,
 
-      p.rmDetails?.category1
-        ?.toLowerCase()
-        .includes(searchText) ||
+        // FM
+        p.fmDetails?.category1,
+        p.fmDetails?.category2,
+        p.fmDetails?.category3,
 
-      p.smDetails?.category1
-        ?.toLowerCase()
-        .includes(searchText) ||
+      ];
 
-      p.fmDetails?.category1
-        ?.toLowerCase()
-        .includes(searchText)
+      return (
 
+        // NAME
+
+        p.name
+          ?.toLowerCase()
+          .includes(searchText) ||
+
+        // CODE
+
+        p.code
+          ?.toLowerCase()
+          .includes(searchText) ||
+
+        // HSN
+
+        p.hsn
+          ?.toLowerCase()
+          .includes(searchText) ||
+
+        // CATEGORY SEARCH
+
+        categories.some(cat =>
+          cat
+            ?.toLowerCase()
+            .includes(searchText)
+        )
+
+      );
+
+    })
+
+    // LATEST PRODUCT FIRST
+
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt) -
+        new Date(a.createdAt)
     );
-
-  });
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
