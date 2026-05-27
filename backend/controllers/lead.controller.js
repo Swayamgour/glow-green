@@ -240,32 +240,188 @@ const updateLead = async (req, res) => {
 
     const changes = [];
 
+    // NAME
+
     if (
+
+      req.body.leadName &&
+
+      req.body.leadName !== prevLead.leadName
+
+    ) {
+
+      changes.push(
+
+        `Name changed from "${prevLead.leadName}" to "${req.body.leadName}"`
+
+      );
+
+    }
+
+    // PHONE
+
+    if (
+
+      req.body.phone &&
+
+      req.body.phone !== prevLead.phone
+
+    ) {
+
+      changes.push(
+
+        `Phone changed from "${prevLead.phone}" to "${req.body.phone}"`
+
+      );
+
+    }
+
+    // EMAIL
+
+    if (
+
+      req.body.email &&
+
+      req.body.email !== prevLead.email
+
+    ) {
+
+      changes.push(
+
+        `Email changed from "${prevLead.email}" to "${req.body.email}"`
+
+      );
+
+    }
+
+    // COMPANY
+
+    if (
+
+      req.body.company &&
+
+      req.body.company !== prevLead.company
+
+    ) {
+
+      changes.push(
+
+        `Company changed from "${prevLead.company}" to "${req.body.company}"`
+
+      );
+
+    }
+
+    // CATEGORY
+
+    if (
+
+      req.body.category &&
+
+      req.body.category !== prevLead.category
+
+    ) {
+
+      changes.push(
+
+        `Category changed from "${prevLead.category}" to "${req.body.category}"`
+
+      );
+
+    }
+
+    // STATUS
+
+    if (
+
       req.body.leadStatus &&
-      req.body.leadStatus !== prevStatus
+
+      req.body.leadStatus !== prevLead.leadStatus
+
     ) {
 
       changes.push(
-        `Status changed from "${prevStatus}" to "${req.body.leadStatus}"`
+
+        `Status changed from "${prevLead.leadStatus}" to "${req.body.leadStatus}"`
+
       );
 
     }
 
-    if (req.body.followUpDate) {
-
-      changes.push(
-        `Follow-up date updated`
-      );
-
-    }
+    // ASSIGNED TO
 
     if (
-      req.body.remarks &&
-      req.body.remarks.trim()
+
+      req.body.assignedTo &&
+
+      req.body.assignedTo.toString() !==
+
+      prevLead.assignedTo?.toString()
+
     ) {
 
       changes.push(
-        `New follow-up remark added`
+
+        `Assigned executive updated`
+
+      );
+
+    }
+
+    // FOLLOW UP DATE
+
+    if (
+
+      req.body.followUpDate &&
+
+      req.body.followUpDate !==
+
+      prevLead.followUpDate?.toISOString()
+
+    ) {
+
+      changes.push(
+
+        `Follow-up date changed`
+
+      );
+
+    }
+
+    // EXPECTED VALUE
+
+    if (
+
+      req.body.expectedValue &&
+
+      Number(req.body.expectedValue) !==
+
+      Number(prevLead.expectedValue)
+
+    ) {
+
+      changes.push(
+
+        `Expected value changed from "${prevLead.expectedValue}" to "${req.body.expectedValue}"`
+
+      );
+
+    }
+
+    // REMARKS
+
+    if (
+
+      req.body.remarks &&
+
+      req.body.remarks.trim()
+
+    ) {
+
+      changes.push(
+
+        `Remark added: "${req.body.remarks.trim()}"`
+
       );
 
     }
