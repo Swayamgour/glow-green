@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef , useEffect } from 'react';
 import {
   useGetTDSListQuery,
   useGetTDSCategoriesQuery,
@@ -65,6 +65,34 @@ export default function TDS() {
   const [downloading, setDownloading] = useState({});
   const [toast, setToast] = useState(null);
   const fileInputRef = useRef();
+
+  const [openMenuId, setOpenMenuId] =
+    useState(null);
+
+
+  useEffect(() => {
+
+    const closeMenu = () => {
+
+      setOpenMenuId(null);
+
+    };
+
+    window.addEventListener(
+      'click',
+      closeMenu
+    );
+
+    return () => {
+
+      window.removeEventListener(
+        'click',
+        closeMenu
+      );
+
+    };
+
+  }, []);
 
   // Build query params
   const queryParams = {};
@@ -448,14 +476,46 @@ export default function TDS() {
                     Details
                   </button>
                   <div className="tds-card-more">
-                    <button className="tds-more-btn">⋯</button>
-                    <div className="tds-more-menu">
-                      <button onClick={() => handleOpenEdit(doc)}>✏️ Edit Info</button>
-                      <button onClick={() => handleArchive(doc)}>
-                        {doc.status === 'active' ? '📦 Archive' : '✅ Restore'}
-                      </button>
-                      <button className="danger" onClick={() => handleDelete(doc._id)}>🗑️ Delete</button>
-                    </div>
+                    <button
+
+                      className="tds-more-btn"
+
+                      onClick={(e) => {
+
+                        e.stopPropagation();
+
+                        setOpenMenuId(
+
+                          openMenuId === doc._id
+                            ? null
+                            : doc._id
+
+                        );
+
+                      }}
+
+                    >
+
+                      ⋯
+
+                    </button>
+                    {openMenuId === doc._id &&
+
+                      (<div
+
+                        className="tds-more-menu"
+
+                        onClick={(e) =>
+                          e.stopPropagation()
+                        }
+
+                      >
+                        <button onClick={() => handleOpenEdit(doc)}>✏️ Edit Info</button>
+                        <button onClick={() => handleArchive(doc)}>
+                          {doc.status === 'active' ? '📦 Archive' : '✅ Restore'}
+                        </button>
+                        <button className="danger" onClick={() => handleDelete(doc._id)}>🗑️ Delete</button>
+                      </div>)}
                   </div>
                 </div>
               </div>

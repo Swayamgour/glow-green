@@ -1,9 +1,9 @@
-const express  = require('express');
-const router   = express.Router();
-const multer   = require('multer');
-const path     = require('path');
+const express = require('express');
+const router = express.Router();
+const multer = require('multer');
+const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const fs       = require('fs');
+const fs = require('fs');
 const {
   getTDSList, getTDS, uploadTDS, updateTDS,
   deleteTDS, downloadTDS, getCategories
@@ -15,7 +15,7 @@ if (!fs.existsSync(tdsDir)) fs.mkdirSync(tdsDir, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, tdsDir),
-  filename:    (req, file, cb) => {
+  filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
     cb(null, `${uuidv4()}${ext}`);
   }
@@ -40,12 +40,12 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 } // 20 MB
 });
 
-router.get('/',               getTDSList);
-router.get('/categories',     getCategories);
-router.get('/:id',            getTDS);
-router.get('/:id/download',   downloadTDS);
+router.get('/', getTDSList);
+router.get('/categories', getCategories);
+router.get('/:id', getTDS);
+router.get('/:id/download', downloadTDS);
 router.post('/', upload.single('file'), uploadTDS);
-router.put('/:id',            updateTDS);
-router.delete('/:id',         deleteTDS);
+router.put('/:id', updateTDS);
+router.delete('/:id', deleteTDS);
 
 module.exports = router;

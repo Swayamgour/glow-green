@@ -534,7 +534,7 @@
   background: #f3f4f6;
 }
 
-.tds-more-menu {
+/* .tds-more-menu {
   display: none;
   position: absolute;
   right: 0;
@@ -546,11 +546,57 @@
   z-index: 100;
   min-width: 140px;
   overflow: hidden;
+} */
+
+.tds-more-menu {
+
+  position: absolute;
+
+  right: 0;
+
+  bottom: 36px;
+
+  background: var(--bg-card);
+
+  border: 1px solid var(--border-color);
+
+  border-radius: 8px;
+
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+
+  z-index: 100;
+
+  min-width: 140px;
+
+  overflow: hidden;
+
+  animation: menuFade .18s ease;
+
 }
 
-.tds-card-more:hover .tds-more-menu {
-  display: block;
+@keyframes menuFade {
+
+  from {
+
+    opacity: 0;
+
+    transform: translateY(8px);
+
+  }
+
+  to {
+
+    opacity: 1;
+
+    transform: translateY(0);
+
+  }
+
 }
+
+/* .tds-card-more:hover .tds-more-menu {
+  display: block;
+} */
 
 .tds-more-menu button {
   display: block;
