@@ -9,6 +9,7 @@ import {
   useGetProductsQuery
 } from '../Redux/api';
 import './TDS.css';
+import ConfirmationDialog from './ConfirmationDialog'; // Add this import
 
 const FILE_ICONS = {
   'application/pdf': { icon: '📄', label: 'PDF', color: '#dc2626' },
@@ -24,31 +25,18 @@ const FILE_ICONS = {
 const getFileInfo = (mime) => FILE_ICONS[mime] || { icon: '📎', label: 'FILE', color: '#6b7280' };
 
 const emptyForm = {
-
   productId: '',
-
   productName: '',
-
   productCode: '',
-
   category: '',
-
   productType: '',
-
   category1: '',
-
   category2: '',
-
   category3: '',
-
   version: '',
-
   description: '',
-
   tags: '',
-
   status: 'active'
-
 };
 
 export default function TDS() {
@@ -64,34 +52,20 @@ export default function TDS() {
   const [saving, setSaving] = useState(false);
   const [downloading, setDownloading] = useState({});
   const [toast, setToast] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const fileInputRef = useRef();
 
-  const [openMenuId, setOpenMenuId] =
-    useState(null);
-
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   useEffect(() => {
-
     const closeMenu = () => {
-
       setOpenMenuId(null);
-
     };
-
-    window.addEventListener(
-      'click',
-      closeMenu
-    );
-
+    window.addEventListener('click', closeMenu);
     return () => {
-
-      window.removeEventListener(
-        'click',
-        closeMenu
-      );
-
+      window.removeEventListener('click', closeMenu);
     };
-
   }, []);
 
   // Build query params
@@ -151,63 +125,30 @@ export default function TDS() {
     setViewDoc(null);
   };
 
-  const handleProductSelect = (
-    productId
-  ) => {
-
-    const product =
-      products.find(
-        p => p._id === productId
-      );
-
+  const handleProductSelect = (productId) => {
+    const product = products.find(p => p._id === productId);
     if (!product) return;
 
     setForm(prev => ({
-
       ...prev,
-
       productId: product._id,
-
       productName: product.name || '',
-
-      productCode:
-        product.code || '',
-
-      productType:
-        product.type || '',
-
-      category:
-        product.category || '',
-
-      category1:
-        product.fmDetails?.category1 ||
-
+      productCode: product.code || '',
+      productType: product.type || '',
+      category: product.category || '',
+      category1: product.fmDetails?.category1 ||
         product.rmDetails?.category1 ||
-
         product.smDetails?.category1 ||
-
         '',
-
-      category2:
-        product.fmDetails?.category2 ||
-
+      category2: product.fmDetails?.category2 ||
         product.rmDetails?.category2 ||
-
         product.smDetails?.category2 ||
-
         '',
-
-      category3:
-        product.fmDetails?.category3 ||
-
+      category3: product.fmDetails?.category3 ||
         product.rmDetails?.category3 ||
-
         product.smDetails?.category3 ||
-
         ''
-
     }));
-
   };
 
   const handleFileSelect = (f) => {
@@ -275,16 +216,28 @@ export default function TDS() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this document? The file will also be removed.')) return;
+  const handleDelete = (id) => {
+    setDeleteId(id);
+    setConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
     try {
-      await deleteTDS(id).unwrap();
+      await deleteTDS(deleteId).unwrap();
       showToast('Document deleted');
-      if (viewDoc?._id === id) setViewDoc(null);
+      if (viewDoc?._id === deleteId) setViewDoc(null);
       refetchDocs();
     } catch (err) {
       showToast(err.data?.message || err.message || 'Failed to delete', 'error');
+    } finally {
+      setConfirmOpen(false);
+      setDeleteId(null);
     }
+  };
+
+  const cancelDelete = () => {
+    setConfirmOpen(false);
+    setDeleteId(null);
   };
 
   const handleDownload = async (doc) => {
@@ -477,45 +430,30 @@ export default function TDS() {
                   </button>
                   <div className="tds-card-more">
                     <button
-
                       className="tds-more-btn"
-
                       onClick={(e) => {
-
                         e.stopPropagation();
-
                         setOpenMenuId(
-
                           openMenuId === doc._id
                             ? null
                             : doc._id
-
                         );
-
                       }}
-
                     >
-
                       ⋯
-
                     </button>
-                    {openMenuId === doc._id &&
-
-                      (<div
-
+                    {openMenuId === doc._id && (
+                      <div
                         className="tds-more-menu"
-
-                        onClick={(e) =>
-                          e.stopPropagation()
-                        }
-
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <button onClick={() => handleOpenEdit(doc)}>✏️ Edit Info</button>
                         <button onClick={() => handleArchive(doc)}>
                           {doc.status === 'active' ? '📦 Archive' : '✅ Restore'}
                         </button>
                         <button className="danger" onClick={() => handleDelete(doc._id)}>🗑️ Delete</button>
-                      </div>)}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -575,177 +513,85 @@ export default function TDS() {
 
               <div className="tds-form-row">
                 <div className="tds-fg">
-
                   <label>
                     Select Product
                     <span className="req">*</span>
                   </label>
-
                   <select
                     value={form.productId}
-
-                    onChange={(e) =>
-                      handleProductSelect(
-                        e.target.value
-                      )
-                    }
+                    onChange={(e) => handleProductSelect(e.target.value)}
                   >
-
                     <option value="">
                       Select Product
                     </option>
 
                     {/* FINISHED GOODS */}
-
                     <optgroup label="Finished Goods">
-
                       {products
-                        .filter(
-                          p => p.type === 'FM'
-                        )
+                        .filter(p => p.type === 'FM')
                         .map((p) => (
-
-                          <option
-                            key={p._id}
-                            value={p._id}
-                          >
-
+                          <option key={p._id} value={p._id}>
                             {p.name}
-
-                            {/* {p.code &&
-                              ` (${p.code})`} */}
-
                           </option>
-
                         ))}
-
                     </optgroup>
 
                     {/* SEMI FINISHED */}
-
                     <optgroup label="Semi Finished">
-
                       {products
-                        .filter(
-                          p => p.type === 'SM'
-                        )
+                        .filter(p => p.type === 'SM')
                         .map((p) => (
-
-                          <option
-                            key={p._id}
-                            value={p._id}
-                          >
-
+                          <option key={p._id} value={p._id}>
                             {p.name}
-
-                            {p.code &&
-                              ` (${p.code})`}
-
+                            {p.code && ` (${p.code})`}
                           </option>
-
                         ))}
-
                     </optgroup>
 
                     {/* RAW MATERIAL */}
-
                     <optgroup label="Raw Material">
-
                       {products
-                        .filter(
-                          p => p.type === 'RM'
-                        )
+                        .filter(p => p.type === 'RM')
                         .map((p) => (
-
-                          <option
-                            key={p._id}
-                            value={p._id}
-                          >
-
+                          <option key={p._id} value={p._id}>
                             {p.name}
-
-                            {p.code &&
-                              ` (${p.code})`}
-
+                            {p.code && ` (${p.code})`}
                           </option>
-
                         ))}
-
                     </optgroup>
-
                   </select>
 
-
                   {/* PRODUCT DETAILS */}
-
-                  {
-                    form.productId && (
-
-                      <div className="tds-product-details">
-
-                        {/* TYPE */}
-
-                        <div className="tds-product-badge type">
-
-                          {
-                            form.productType === 'FM'
-                              ? 'Finished Goods'
-
-                              : form.productType === 'SM'
-                                ? 'Semi Finished'
-
-                                : 'Raw Material'
-                          }
-
-                        </div>
-
-                        {/* CATEGORY 1 */}
-
-                        {
-                          form.category1 && (
-
-                            <div className="tds-product-badge">
-
-                              {form.category1}
-
-                            </div>
-
-                          )
-                        }
-
-                        {/* CATEGORY 2 */}
-
-                        {
-                          form.category2 && (
-
-                            <div className="tds-product-badge">
-
-                              {form.category2}
-
-                            </div>
-
-                          )
-                        }
-
-                        {/* CATEGORY 3 */}
-
-                        {
-                          form.category3 && (
-
-                            <div className="tds-product-badge">
-
-                              {form.category3}
-
-                            </div>
-
-                          )
-                        }
-
+                  {form.productId && (
+                    <div className="tds-product-details">
+                      {/* TYPE */}
+                      <div className="tds-product-badge type">
+                        {form.productType === 'FM'
+                          ? 'Finished Goods'
+                          : form.productType === 'SM'
+                          ? 'Semi Finished'
+                          : 'Raw Material'}
                       </div>
-
-                    )
-                  }
-
+                      {/* CATEGORY 1 */}
+                      {form.category1 && (
+                        <div className="tds-product-badge">
+                          {form.category1}
+                        </div>
+                      )}
+                      {/* CATEGORY 2 */}
+                      {form.category2 && (
+                        <div className="tds-product-badge">
+                          {form.category2}
+                        </div>
+                      )}
+                      {/* CATEGORY 3 */}
+                      {form.category3 && (
+                        <div className="tds-product-badge">
+                          {form.category3}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="tds-fg">
                   <label>Product Code</label>
@@ -797,7 +643,6 @@ export default function TDS() {
             </div>
 
             <div className="tds-modal-foot">
-              {/* <button className="tds-btn-ghost" onClick={() => setShowUpload(false)}>Cancel</button> */}
               <button className="tds-btn-primary" onClick={handleSave} disabled={saving}>
                 {saving && <span className="tds-spin" />}
                 {saving ? 'Saving...' : editDoc ? '💾 Update Info' : '⬆️ Upload Document'}
@@ -864,7 +709,6 @@ export default function TDS() {
               )}
             </div>
             <div className="tds-modal-foot">
-              {/* <button className="tds-btn-ghost" onClick={() => setViewDoc(null)}>Close</button> */}
               <button className="tds-btn-outline-edit" onClick={() => handleOpenEdit(viewDoc)}>✏️ Edit Info</button>
               <button className="tds-btn-primary" onClick={() => handleDownload(viewDoc)}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
@@ -874,6 +718,15 @@ export default function TDS() {
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialog for Delete */}
+      <ConfirmationDialog
+        isOpen={confirmOpen}
+        title="Delete Document"
+        message="Are you sure you want to delete this document? This action cannot be undone and the file will be permanently removed."
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
     </div>
   );
 }
