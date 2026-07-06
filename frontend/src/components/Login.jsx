@@ -1,24 +1,21 @@
-
-
 import { useEffect, useState } from 'react';
 import './Login.css';
 import { useLoginMutation } from '../Redux/api';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // ✅ added
   const [error, setError] = useState('');
   const [logoutMessage, setLogoutMessage] = useState('');
 
   const [login, { isLoading }] = useLoginMutation();
   const navigate = useNavigate();
 
-  // ✅ Already logged in → redirect
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user"));
-
-
 
   useEffect(() => {
     const logoutMsg = sessionStorage.getItem('gg_logout_msg');
@@ -40,11 +37,10 @@ function Login() {
     try {
       const result = await login({ email, password }).unwrap();
 
-      // ✅ Store auth data
       localStorage.setItem("token", result.token);
       localStorage.setItem("user", JSON.stringify(result));
 
-      navigate("/Dashboard"); // ✅ direct dashboard
+      navigate("/Dashboard");
 
     } catch (err) {
       setError(err.message || 'Login failed');
@@ -54,11 +50,13 @@ function Login() {
   return (
     <div className="login-container">
       <div className="login-card">
+
         <div className="login-header">
           <div className="login-logo">🌿</div>
           <h1>Glow Green CRM</h1>
           <p>Sign in to your account</p>
         </div>
+
 
         {logoutMessage && (
           <div style={{
@@ -70,24 +68,25 @@ function Login() {
             marginBottom: 16,
             fontSize: 14,
             fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
           }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
             {logoutMessage}
           </div>
         )}
 
+
         <form onSubmit={handleSubmit} className="login-form">
-          {error && <div className="error-message">⚠️ {error}</div>}
+
+          {error && (
+            <div className="error-message">
+              ⚠️ {error}
+            </div>
+          )}
 
           <div className="form-group">
-            <label htmlFor="email">Email Address</label>
+            <label htmlFor="email">
+              Email Address
+            </label>
+
             <input
               type="email"
               id="email"
@@ -99,28 +98,59 @@ function Login() {
             />
           </div>
 
+
+          {/* ✅ Password With Show Hide */}
           <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              autoComplete="current-password"
-              disabled={isLoading}
-            />
+
+            <label htmlFor="password">
+              Password
+            </label>
+
+            <div className="password-wrapper">
+
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                disabled={isLoading}
+              />
+
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+
+            </div>
+
           </div>
 
-          <button type="submit" className="login-button" disabled={isLoading}>
-            {isLoading ? <span className="login-spinner" /> : null}
-            {isLoading ? 'Signing in...' : 'Sign In'}
+
+          <button
+            type="submit"
+            className="login-button"
+            disabled={isLoading}
+          >
+
+            {isLoading && (
+              <span className="login-spinner" />
+            )}
+
+            {isLoading
+              ? 'Signing in...'
+              : 'Sign In'
+            }
+
           </button>
+
+
         </form>
 
-        {/* <div className="login-footer">
-          <p>Contact your admin to get access</p>
-        </div> */}
       </div>
     </div>
   );
